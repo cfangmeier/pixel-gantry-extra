@@ -8,7 +8,7 @@ project(GantryExt
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fdeclspec")
 
-add_library(Database SHARED src/database.cpp src/database.h)
+add_library(Database SHARED src/database.cpp src/database.h src/sha512.cpp src/sha512.h)
 # The .lib files should be found automatically if they are installed in the standard place by the
 # MySQL Connector C++ 64-bit msi installer, typically this is C:\Program Files\MySQL\Connector C++ 8.0\lib64\vs14
 # In addition, to run during development, the dlls should be copied to somewhere on your PATH or the build directory

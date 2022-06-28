@@ -129,10 +129,16 @@ int query_specific_password(int session_id, const char* schema, char* username, 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", "cjoo").execute();
+    auto rows = part_table.select("password").where("username = :name").bind("name", "cmills").execute();
     mysqlx::Row row;
     while ((row = rows.fetchOne())) {
         cout << row[0] << endl;
+    };
+    string output = sha512("blueberries");
+    cout << output << endl;
+
+    if (static_cast<string>(row[0]) != output) {
+        cout << "uh oh" << endl;
     }
 
     return 0;
