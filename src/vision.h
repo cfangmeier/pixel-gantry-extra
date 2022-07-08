@@ -67,6 +67,7 @@ DLLExport int __cdecl find_rects(
         float nominalWidth,
         float nominalHeight,
         float tolerance,
+        bool allowRotation,
         bool debug,
         const char *logFileDir,
         int *Nrects,

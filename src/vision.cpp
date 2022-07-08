@@ -88,8 +88,8 @@ void do_dilate(cv::Mat &img, int size){
 }
 
 struct ContourData{
-    ContourData::ContourData(){}
-    ContourData::ContourData(float area, float ar){
+    ContourData(){}
+    ContourData(float area, float ar){
         this->area = area;
         this->ar = ar;
     }
@@ -273,6 +273,7 @@ __declspec(dllexport) int __cdecl find_rects(
         float nominalWidth,
         float nominalHeight,
         float tolerance,
+        bool allowRotation,
         bool debug,
         const char* logFileDir,
         int* Nrects,
@@ -321,7 +322,14 @@ __declspec(dllexport) int __cdecl find_rects(
 
     for( int i = 0; i < contours.size(); i++ ) {
         approxPolyDP( cv::Mat(contours[i]), contoursPoly[i], 3, true ); //simplifies contours by decreasing the number of vertices, douglas-peucker algorithim
-        boundRects[i] = cv::minAreaRect(cv::Mat(contoursPoly[i]));
+        if (allowRotation) {
+            boundRects[i] = cv::minAreaRect(cv::Mat(contoursPoly[i]));
+        } else {
+            cv::Rect r = cv::boundingRect(cv::Mat(contoursPoly[i]));
+            cv::Point2f rectCenter = cv::Point2f(r.tl().x+r.width*.5, r.tl().y+r.height*.5);
+            cv::Size2f rectSize = cv::Size2f(r.width, r.height);
+            boundRects[i] = cv::RotatedRect(rectCenter, rectSize, 0.0f);
+        }
     }
 
     //PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
@@ -334,37 +342,37 @@ __declspec(dllexport) int __cdecl find_rects(
         cv::Point2f recPoints[4];
         bRect.points(recPoints);
 
-        pts.push_back({ // Center
+        pts.emplace_back( // Center
                               (bRect.center.x - img.cols / 2) * pixelSize,
                               (bRect.center.y - img.rows / 2) * pixelSize
-                      });
+                      );
 
-        pts.push_back({ // Bottom-Left Corner
+        pts.emplace_back( // Bottom-Left Corner
                               (recPoints[0].x - img.cols / 2) * pixelSize,
                               (recPoints[0].y - img.rows / 2) * pixelSize
-                      });
+                      );
 
-        pts.push_back({ // Top-Left Corner
+        pts.emplace_back( // Top-Left Corner
                               (recPoints[1].x - img.cols / 2) * pixelSize,
                               (recPoints[1].y - img.rows / 2) * pixelSize
-                      });
+                      );
 
-        pts.push_back({ // Top-Right Corner
+        pts.emplace_back( // Top-Right Corner
                               (recPoints[2].x - img.cols / 2) * pixelSize,
                               (recPoints[2].y - img.rows / 2) * pixelSize
-                      });
+                      );
 
-        pts.push_back({ // Bottom-Right Corner
+        pts.emplace_back( // Bottom-Right Corner
                               (recPoints[3].x - img.cols / 2) * pixelSize,
                               (recPoints[3].y - img.rows / 2) * pixelSize
-                      });
+                      );
         rectPoints.push_back(pts);
 
         rectAngles_.push_back(bRect.angle);
-        rectSizes.push_back({
+        rectSizes.emplace_back(
                                     bRect.size.width * pixelSize,
                                     bRect.size.height * pixelSize
-                            });
+                            );
     }
 
 
@@ -399,8 +407,8 @@ __declspec(dllexport) int __cdecl find_rects(
 
             cv::Point2f vertices[4];
             boundRects[i].points(vertices);
-            for (int i = 0; i < 4; i++) {
-                cv::line(img, vertices[i], vertices[(i + 1) % 4], color, 2);
+            for (int j = 0; j < 4; j++) {
+                cv::line(img, vertices[j], vertices[(j + 1) % 4], color, 2);
             }
 
             //Copy to output arrays
@@ -415,6 +423,7 @@ __declspec(dllexport) int __cdecl find_rects(
                 cv::putText(img, label, pt, cv::FONT_HERSHEY_SIMPLEX, 2.0, color, 3);
             };
 
+            float angle;
             if (rotated) {
                 *(rectWidths + counter) = rectSizes[i].y;
                 *(rectHeights + counter) = rectSizes[i].x;

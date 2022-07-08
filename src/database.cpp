@@ -69,7 +69,7 @@ int query_parts(int session_id, const char* schema, int* n_parts, char* part, in
         memcpy(part + idx*STR_LEN, row_part.c_str(), row_part.size()+1);
         *(version + idx) = row_version;
         idx++;
-        cout << part << endl;
+//        cout << part << endl;
     }
     *n_parts = idx;
 

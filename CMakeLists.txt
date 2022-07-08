@@ -25,3 +25,6 @@ add_library(Vision SHARED src/vision.cpp src/vision.h src/utils.cpp src/utils.h)
 target_include_directories(Vision PUBLIC "C:/opencv/build/include")
 target_link_directories(Vision PUBLIC "C:/opencv/build/x64/vc14/lib")
 target_link_libraries(Vision PUBLIC opencv_world455)
+
+add_executable(test_Vision src/test_Vision.cpp)
+target_link_libraries(test_Vision PUBLIC Vision)
