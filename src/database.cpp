@@ -122,7 +122,7 @@ int query_password(int session_id, const char* schema, int* n_password, char* us
     return 0;
 }
 
-int query_specific_password(int session_id, const char* schema, char* username, char* password) {
+bool query_specific_password(int session_id, const char* schema, char* username, char* password) {
     mysqlx::Session *session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
@@ -131,15 +131,19 @@ int query_specific_password(int session_id, const char* schema, char* username, 
     mysqlx::Table part_table = schema_.getTable("people", true);
     auto rows = part_table.select("password").where("username = :name").bind("name", "cmills").execute();
     mysqlx::Row row;
+    string test;
     while ((row = rows.fetchOne())) {
         cout << row[0] << endl;
+        static_cast<string>(row[0]) = test;
+        //Not able to cast row[0] to string test
+        //test does not print anything
+        cout << test << endl;
+        string output = sha512("blueberries");
+        if (test == output) {
+            cout << "Pass" << endl;
+        } else {
+            cout << "Fail" << endl;
+        }
     };
-    string output = sha512("blueberries");
-    cout << output << endl;
-
-    if (static_cast<string>(row[0]) != output) {
-        cout << "uh oh" << endl;
-    }
-
     return 0;
 }

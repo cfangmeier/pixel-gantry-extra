@@ -10,7 +10,7 @@ extern "C" {
     DLLExport int __cdecl query_parts(int session_id, const char* schema, int *n_complaint, char* part, int* version);
     DLLExport int __cdecl query_complaint(int session_id, const char* schema, int* n_complaint, char* who , char* description, int* id);
     DLLExport int __cdecl query_password(int session_id, const char* schema, int* n_password, char* username , char* password);
-    DLLExport int __cdecl  query_specific_password(int session_id, const char* schema, char* username, char* password);
+    DLLExport bool __cdecl  query_specific_password(int session_id, const char* schema, char* username, char* password);
     DLLExport int __cdecl disconnect(int session_id);
 }
 
