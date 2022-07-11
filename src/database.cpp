@@ -129,21 +129,21 @@ bool query_specific_password(int session_id, const char* schema, char* username,
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", "cmills").execute();
+    auto rows = part_table.select("password").where("username = :name").bind("name", "bfarleigh").execute();
     mysqlx::Row row;
-    string test;
     while ((row = rows.fetchOne())) {
-        cout << row[0] << endl;
-        static_cast<string>(row[0]) = test;
-        //Not able to cast row[0] to string test
-        //test does not print anything
-        cout << test << endl;
+        mysqlx::string s = row[0].get<mysqlx::string>();
+        //basic_string<char, char_traits<char>, allocator<char>> val = row[0].get<string>();
+        cout << "Retrieved password is: "<< s << endl;
+        //test password to be hashed
         string output = sha512("blueberries");
-        if (test == output) {
-            cout << "Pass" << endl;
+        cout << "Hashed password is: " << output << endl;
+        if (s == output) {
+            cout << "Authentication Passed" << endl;
+            return true;
         } else {
-            cout << "Fail" << endl;
+            cout << "Authentication Failed" << endl;
+            return false;
         }
-    };
-    return 0;
+    }
 }
