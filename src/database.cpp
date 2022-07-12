@@ -99,9 +99,9 @@ int query_complaint(int session_id, const char* schema, int* n_complaint, char* 
     *n_complaint = idx;
 
     return 0;
-
 }
-int query_password(int session_id, const char* schema, int* n_password, char* username , char* password) {
+
+int query_people(int session_id, const char* schema, int* n_people, char* username , char* name, char* full_name, char* email, char* institute, char* timezone) {
     mysqlx::Session *session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
@@ -113,37 +113,69 @@ int query_password(int session_id, const char* schema, int* n_password, char* us
     int idx = 0;
     for (const auto row: rows) {
         string row_username = row[0].get<string>();
-        string row_password = row[5].get<string>();
-        memcpy(password + idx*STR_LEN, row_password.c_str(), row_password.size() + 1);
+        string row_name = row[1].get<string>();
+        string row_full_name = row[2].get<string>();
+        string row_email = row[3].get<string>();
+        string row_institute = row[4].get<string>();
+        string row_timezone = row[6].get<string>();
         memcpy(username + idx*STR_LEN, row_username.c_str(), row_username.size() + 1);
+        memcpy(name + idx*STR_LEN, row_name.c_str(), row_name.size() + 1);
+        memcpy(full_name + idx*STR_LEN, row_full_name.c_str(), row_full_name.size() + 1);
+        memcpy(email + idx*STR_LEN, row_email.c_str(), row_email.size() + 1);
+        memcpy(institute + idx*STR_LEN, row_institute.c_str(), row_institute.size() + 1);
+        memcpy(timezone + idx*STR_LEN, row_timezone.c_str(), row_timezone.size() + 1);
         idx++;
     }
-    *n_password = idx;
+    *n_people = idx;
     return 0;
 }
 
-bool query_specific_password(int session_id, const char* schema, char* username, char* password) {
+int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
+    /*
+     * Return
+     *   0: Password check passed
+     *   1: User exists & password failed
+     *   2: User does not exist
+     */
     mysqlx::Session *session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", "bfarleigh").execute();
+    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
     mysqlx::Row row;
-    while ((row = rows.fetchOne())) {
+    if ((row = rows.fetchOne())) {
         mysqlx::string s = row[0].get<mysqlx::string>();
-        //basic_string<char, char_traits<char>, allocator<char>> val = row[0].get<string>();
-        cout << "Retrieved password is: "<< s << endl;
-        //test password to be hashed
-        string output = sha512("blueberries");
-        cout << "Hashed password is: " << output << endl;
-        if (s == output) {
-            cout << "Authentication Passed" << endl;
-            return true;
-        } else {
-            cout << "Authentication Failed" << endl;
-            return false;
-        }
+        //user input password
+        string input = sha512(password);
+        return s == input ? 0 : 1;
     }
+    return 2;
+}
+
+int query_component(int session_id, const char* schema, int* n_component, const char* part , char* status, char* location, int* id) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+
+    mysqlx::Schema schema_ = session->getSchema(schema);
+
+    mysqlx::Table part_table = schema_.getTable("component", true);
+    auto rows = part_table.select("id", "part", "status", "location").where("part = :part").bind("part", part).execute();
+    int idx = 0;
+    for (const auto row : rows) {
+        int row_id = row[0].get<int>();
+        string row_part= row[1].get<string>();
+        string row_status = row[2].get<string>();
+        string row_location = row[3].get<string>();
+        //offset to go to next row, 2D array
+        memcpy((void *) (part + idx * STR_LEN), row_part.c_str(), row_part.size() + 1);
+        memcpy(status + idx*STR_LEN, row_status.c_str(), row_status.size()+1);
+        memcpy(location + idx*STR_LEN, row_location.c_str(), row_location.size()+1);
+        *(id + idx) = row_id;
+        idx++;
+    }
+    *n_component = idx;
+
+    return 0;
 }

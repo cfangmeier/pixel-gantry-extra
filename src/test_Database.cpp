@@ -36,18 +36,45 @@ int main(int argc, const char** argv) {
         //cout << (char*) who[i] << ", " << (char*) description[i] <<  ", " << id[i] << endl;
     }
 
-    int n_password;
-    char username[128][128];
-    char password[128][128];
+    int n_people;
+    char username[128];
+    char name[128];
+    char full_name[128];
+    char email[128];
+    char institute[128];
+    char timezone[128];
 
-    query_password(session_id, "cmsfpix_phase2", &n_password, (char*) username , (char*) password);
+    query_people(session_id, "cmsfpix_phase2", &n_people, (char*) username , (char*) name, (char*) full_name, (char*) email, (char*) institute, (char*) timezone);
     //cout << n_password << endl;
-    for(int i=0; i<n_password; i++) {
-        //cout << (char*) username[i] << ", " << (char*) password[i] << endl;
+    for(int i=0; i<n_people; i++) {
+        cout << (char*) username[i] << ", " << (char*) name[i] << (char*) full_name[i] << "," << (char*) email[i] << "," << (char*) institute[i] << "," << (char*) timezone[i] << endl;
     }
 
-    query_specific_password(session_id,"cmsfpix_phase2", (char*) username, (char*) password);
-    //cout << (char*) username << "," << (char*) password << endl;
+//    string username;
+//    string password;
+//
+//    cout << "Enter Username" << endl;
+//    cin >> username;
+//    cout << "Enter Password" << endl;
+//    cin >> password;
+//
+//
+//    int password_check_result = query_specific_password(session_id,"cmsfpix_phase2", username.c_str(), password.c_str());
+//    cout << "Password Check Result: " << password_check_result << endl;
+
+
+//    int n_component;
+//    char status[128];
+//    char location[128];
+//    string part;
+//
+//
+//    query_component(session_id, "cmsfpix_phase2", &n_component, part.c_str() , (char*) status, (char*) location, (int*) id);
+//    cout << "Enter part" << endl;
+//    cin >> part;
+//    for(int i = 0; i < n_component; i++) {
+//        cout << (int *) id << ", " << (char *) status[i] << ", " << (char *) location[i] << endl;
+//    }
 
 disconnect(session_id);
 return 0;
