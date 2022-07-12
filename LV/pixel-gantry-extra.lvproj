@@ -10,6 +10,9 @@
 		<Property Name="server.vi.callsEnabled" Type="Bool">true</Property>
 		<Property Name="server.vi.propertiesEnabled" Type="Bool">true</Property>
 		<Property Name="specify.custom.address" Type="Bool">false</Property>
+		<Item Name="bin" Type="Folder" URL="../bin">
+			<Property Name="NI.DISK" Type="Bool">true</Property>
+		</Item>
 		<Item Name="Database" Type="Folder" URL="../Database">
 			<Property Name="NI.DISK" Type="Bool">true</Property>
 		</Item>
@@ -41,6 +44,23 @@
 				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
 			</Item>
 		</Item>
-		<Item Name="Build Specifications" Type="Build"/>
+		<Item Name="Build Specifications" Type="Build">
+			<Item Name="Zip Distribution" Type="Zip File">
+				<Property Name="Absolute[0]" Type="Bool">false</Property>
+				<Property Name="BuildName" Type="Str">Zip Distribution</Property>
+				<Property Name="Comments" Type="Str"></Property>
+				<Property Name="DestinationID[0]" Type="Str">{9B183FFB-BBFA-4451-9347-8FFBB859412C}</Property>
+				<Property Name="DestinationItemCount" Type="Int">1</Property>
+				<Property Name="DestinationName[0]" Type="Str">Destination Directory</Property>
+				<Property Name="IncludedItemCount" Type="Int">4</Property>
+				<Property Name="IncludedItems[0]" Type="Ref">/My Computer/bin</Property>
+				<Property Name="IncludedItems[1]" Type="Ref">/My Computer/Database</Property>
+				<Property Name="IncludedItems[2]" Type="Ref">/My Computer/Vision/tests</Property>
+				<Property Name="IncludedItems[3]" Type="Ref">/My Computer/Vision/Vision.lvlib</Property>
+				<Property Name="IncludeProject" Type="Bool">false</Property>
+				<Property Name="Path[0]" Type="Path">../../builds/pixel-gantry-extra/Zip Distribution/pixel-gantry-extra.zip</Property>
+				<Property Name="ZipBase" Type="Str">NI_zipbasevirtual</Property>
+			</Item>
+		</Item>
 	</Item>
 </Project>
