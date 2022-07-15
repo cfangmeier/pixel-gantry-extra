@@ -53,7 +53,6 @@ int get_schemas(int session_id, int* n_schemas, char* schemas) {
     return 0;
 }
 
-
 int query_parts(int session_id, const char* schema, int* n_parts, char* part, int* version) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
@@ -118,6 +117,7 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
         string row_email = row[3].get<string>();
         string row_institute = row[4].get<string>();
         string row_timezone = row[6].get<string>();
+
         memcpy(username + idx*STR_LEN, row_username.c_str(), row_username.size() + 1);
         memcpy(name + idx*STR_LEN, row_name.c_str(), row_name.size() + 1);
         memcpy(full_name + idx*STR_LEN, row_full_name.c_str(), row_full_name.size() + 1);
@@ -130,52 +130,79 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
     return 0;
 }
 
-int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
-    /*
-     * Return
-     *   0: Password check passed
-     *   1: User exists & password failed
-     *   2: User does not exist
-     */
-    mysqlx::Session *session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
+//    /*
+//     * Return
+//     *   0: Password check passed
+//     *   1: User exists & password failed
+//     *   2: User does not exist
+//     */
+//    mysqlx::Session *session;
+//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//
+//    mysqlx::Schema schema_ = session->getSchema(schema);
+//
+//    mysqlx::Table part_table = schema_.getTable("people", true);
+//    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
+//    mysqlx::Row row;
+//    if ((row = rows.fetchOne())) {
+//        mysqlx::string s = row[0].get<mysqlx::string>();
+//        //user input password
+//        string input = sha512(password);
+//        return s == input ? 0 : 1;
+//    }
+//    return 2;
+//}
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
-    mysqlx::Row row;
-    if ((row = rows.fetchOne())) {
-        mysqlx::string s = row[0].get<mysqlx::string>();
-        //user input password
-        string input = sha512(password);
-        return s == input ? 0 : 1;
-    }
-    return 2;
-}
-
-int query_component(int session_id, const char* schema, int* n_component, const char* part , char* status, char* location, int* id) {
+int query_component(int session_id, const char* schema, int* n_component, int* id, char* part , char* status, char* description, char* location) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.select("id", "part", "status", "location").where("part = :part").bind("part", part).execute();
+    auto rows = part_table.select("*").execute();
+
     int idx = 0;
     for (const auto row : rows) {
         int row_id = row[0].get<int>();
-        string row_part= row[1].get<string>();
-        string row_status = row[2].get<string>();
-        string row_location = row[3].get<string>();
-        //offset to go to next row, 2D array
-        memcpy((void *) (part + idx * STR_LEN), row_part.c_str(), row_part.size() + 1);
+        string row_part = row[1].get<string>();
+        string row_status = row[3].get<string>();
+        string row_description = row[4].get<string>();
+        string row_location = row[8].get<string>();
+        //offset to go to next row, think of 2D array
+        memcpy(part + idx*STR_LEN, row_part.c_str(), row_part.size()+1);
         memcpy(status + idx*STR_LEN, row_status.c_str(), row_status.size()+1);
+        memcpy(description + idx*STR_LEN, row_description.c_str(), row_description.size()+1);
         memcpy(location + idx*STR_LEN, row_location.c_str(), row_location.size()+1);
+
         *(id + idx) = row_id;
         idx++;
     }
     *n_component = idx;
-
     return 0;
 }
+
+//int insert_component(int session_id, const char* schema, char* part, char* status, char* description, char* location) {
+//    mysqlx::Session* session;
+//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//
+//    mysqlx::Schema schema_ = session->getSchema(schema);
+//
+//    mysqlx::Table part_table = schema_.getTable("component", true);
+//    auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
+//
+//    return 0;
+//}
+
+//int update_component(int session_id, const char* schema, char* part, char* status, char* description, char* location) {
+//    mysqlx::Session* session;
+//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//
+//    mysqlx::Schema schema_ = session->getSchema(schema);
+//
+//    mysqlx::Table part_table = schema_.getTable("component", true);
+//    auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
+//
+//    return 0;
+//}
