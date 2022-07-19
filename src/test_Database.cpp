@@ -16,18 +16,18 @@ int main(int argc, const char** argv) {
 
     get_schemas(session_id, &n_schemas, (char*) schemas);
 
-    int n_parts;
-    char parts[128][128];
-    int versions[128];
-    query_parts(session_id, "cmsfpix_phase2", &n_parts, (char*) parts, (int*) versions);
-    cout << n_parts << endl;
-    for(int i=0; i<n_parts; i++) {
-        cout << (char*) parts[i] << ", " << versions[i] << endl;
-    }
+//    int n_parts;
+//    char parts[128][128];
+//    int versions[128];
+//    query_parts(session_id, "cmsfpix_phase2", &n_parts, (char*) parts, (int*) versions);
+//    cout << n_parts << endl;
+//    for(int i=0; i<n_parts; i++) {
+//        cout << (char*) parts[i] << ", " << versions[i] << endl;
+//    }
 //
 //    int n_complaint;
 //    char who[128][128];
-    int id[128][128];
+//    int id[128][128];
 //    char description[128][128];
 //
 //    query_complaint(session_id, "cmsfpix_phase2", &n_complaint, (char*) who, (char*) description, (int*) id);
@@ -57,26 +57,26 @@ int main(int argc, const char** argv) {
 //    cout << "Enter Password" << endl;
 //    cin >> password;
 //
-//
 //    int password_check_result = query_specific_password(session_id,"cmsfpix_phase2", username.c_str(), password.c_str());
 //    cout << "Password Check Result: " << password_check_result << endl;
 
 
-    int n_component;
-    char status[128][128];
-    char location[128][128];
-    string part;
-    char description[128][128];
+//    int n_component;
+//    char status[128][128];
+//    char location[128][128];
+//    string part;
+//    char description[128][128];
+//    char serial_number[128][128];
 //    string status;
 //    string description;
 //    string location;
-
-    query_component(session_id, "cmsfpix_phase2", &n_component, part.c_str(), (int*) id , (char*) status, (char*) description, (char*) location);
-    cout << "Enter Part" << endl;
-    cin >> part;
-    for(int i = 0; i < n_component; i++) {
-        cout << id[i] << ", " << (char*) status[i] << ", " << (char*) description[i] << "," << (char*) location[i] << endl;
-    }
+//
+//    query_component(session_id, "cmsfpix_phase2", part.c_str(), (int*) id , (char*) status, (char*) description, (char*) serial_number,(char*) location);
+//    cout << "Enter Part" << endl;
+//    cin >> part;
+//    for(int i = 0; i < n_component; i++) {
+//        cout << id[i] << ", " << (char*) status[i] << ", " << (char*) description[i] << ", " << (char*) serial_number << ", " << (char*) location[i] << endl;
+//    }
 
     //insert_component(session_id, "cmsfpix_phase2",  part.c_str(), status.c_str(), description.c_str(), location.c_str());
 
