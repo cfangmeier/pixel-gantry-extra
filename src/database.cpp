@@ -134,42 +134,48 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
     return 0;
 }
 
-int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
-    /*
-     * Return
-     *   0: Password check passed
-     *   1: User exists & password failed
-     *   2: User does not exist
-     */
-    mysqlx::Session *session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
+//    /*
+//     * Return
+//     *   0: Password check passed
+//     *   1: User exists & password failed
+//     *   2: User does not exist
+//     */
+//    mysqlx::Session *session;
+//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//
+//    mysqlx::Schema schema_ = session->getSchema(schema);
+//
+//    mysqlx::Table part_table = schema_.getTable("people", true);
+//    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
+//    mysqlx::Row row;
+//    if ((row = rows.fetchOne())) {
+//        mysqlx::string s = row[0].get<mysqlx::string>();
+//        //user input password
+//        string input = sha512(password);
+//        return s == input ? 0 : 1;
+//    }
+//    return 2;
+//}
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
-    mysqlx::Row row;
-    if ((row = rows.fetchOne())) {
-        mysqlx::string s = row[0].get<mysqlx::string>();
-        //user input password
-        string input = sha512(password);
-        return s == input ? 0 : 1;
-    }
-    return 2;
-}
-
-int query_component(int session_id, const char* schema, const char* part, int* id, char* status, char* description, char* location) {
+int query_component(int session_id, const char* schema, const char* part, int* id, char* status, char* description, char* serial_number,  char* location) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.select("id, status, description, location").where("part = :component").bind("component", part).execute();
+    auto rows = part_table.select("serial_number").where("status = new").execute();
 
+    mysqlx::Row row;
 
+    if ((row = rows.fetchOne())) {
+        mysqlx::string s = row[6].get<mysqlx::string>();
+        cout << row << endl;
+    }
     return 0;
 }
+
 
 //int insert_component(int session_id, const char* schema, char* part, char* status, char* description, char* location) {
 //    mysqlx::Session* session;
