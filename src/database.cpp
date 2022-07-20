@@ -165,14 +165,13 @@ int query_component(int session_id, const char* schema, const char* part, int* i
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.select("serial_number").where("status = new").execute();
+    auto rows = part_table.select("id", "status", "description", "serial_number", "location").where("part = :component").bind("component", "heater_1x2").execute();
 
-    mysqlx::Row row;
+    for(mysqlx::Row row : rows.fetchAll()) {
 
-    if ((row = rows.fetchOne())) {
-        mysqlx::string s = row[6].get<mysqlx::string>();
-        cout << row << endl;
+        cout << row[0] << "," << row[1] << "," << row[2] << "," << row[3] << "," << row[4] << endl;
     }
+
     return 0;
 }
 
