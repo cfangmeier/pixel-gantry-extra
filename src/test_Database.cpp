@@ -60,22 +60,39 @@ int main(int argc, const char** argv) {
 //    int password_check_result = query_specific_password(session_id,"cmsfpix_phase2", username.c_str(), password.c_str());
 //    cout << "Password Check Result: " << password_check_result << endl;
 
-    char status[128][128];
-    char location[128][128];
-    char description[128][128];
-    char serial_number[128][128];
-    int id[128];
-    int n_component;
+//    char status[128][128];
+//    char location[128][128];
+//    char description[128][128];
+//    char serial_number[128][128];
+//    int id[128];
+//    int n_component;
     string part;
+    string status;
+    string description;
+    string location;
+    int version;
 
-    cout << "Enter Part" << endl;
+
+//    cout << "Enter Part" << endl;
+//    cin >> part;
+//    query_component(session_id, "cmsfpix_phase2", part.c_str(), &n_component, (int*) id , (char*) status, (char*) description, (char*) serial_number,(char*) location);
+//    for(int i = 0; i < n_component; i++) {
+//        cout << id[i] << ", " << (char*) status[i] << ", " << (char*) description[i] << ", " << (char*) serial_number << ", " << (char*) location[i] << endl;
+//    }
+
+    cout << "Enter new component data" << endl;
+    cout << "Enter part" << endl;
     cin >> part;
-    query_component(session_id, "cmsfpix_phase2", part.c_str(), &n_component, (int*) id , (char*) status, (char*) description, (char*) serial_number,(char*) location);
-    for(int i = 0; i < n_component; i++) {
-        cout << id[i] << ", " << (char*) status[i] << ", " << (char*) description[i] << ", " << (char*) serial_number << ", " << (char*) location[i] << endl;
-    }
+    cout << "Enter version" << endl;
+    cin >> version;
+    cout << "Enter status" << endl;
+    cin >> status;
+    cout << "Enter description" << endl;
+    cin >> description;
+    cout << "Enter location" << endl;
+    cin >> location;
 
-    //insert_component(session_id, "cmsfpix_phase2",  part.c_str(), status.c_str(), description.c_str(), location.c_str());
+    insert_component(session_id, "cmsfpix_phase2", part.c_str(), version, status.c_str(), description.c_str(), location.c_str());
 
 disconnect(session_id);
 return 0;

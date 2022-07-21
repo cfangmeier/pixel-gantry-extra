@@ -197,26 +197,26 @@ int query_component(int session_id, const char* schema, const char* part, int* n
     return 0;
 }
 
-//int insert_component(int session_id, const char* schema, char* part, char* status, char* description, char* location) {
-//    mysqlx::Session* session;
-//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-//
-//    mysqlx::Schema schema_ = session->getSchema(schema);
-//
-//    mysqlx::Table part_table = schema_.getTable("component", true);
-//    auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
-//
-//    return 0;
-//}
+int insert_component(int session_id, const char* schema, const char* part, int version, const char* status, const char* description, const char* location) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
-//int update_component(int session_id, const char* schema, char* part, char* status, char* description, char* location) {
-//    mysqlx::Session* session;
-//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-//
-//    mysqlx::Schema schema_ = session->getSchema(schema);
-//
-//    mysqlx::Table part_table = schema_.getTable("component", true);
-//    auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
-//
-//    return 0;
-//}
+    mysqlx::Schema schema_ = session->getSchema(schema);
+
+    mysqlx::Table part_table = schema_.getTable("component", true);
+    auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, version, status, description, location).execute();
+
+    return 0;
+}
+
+int update_component(int session_id, const char* schema, const char* status, int parent) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+
+    mysqlx::Schema schema_ = session->getSchema(schema);
+
+    mysqlx::Table part_table = schema_.getTable("component", true);
+    auto rows = part_table.update().set("status", "parent").where().execute();
+
+    return 0;
+}
