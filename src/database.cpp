@@ -204,19 +204,38 @@ int insert_component(int session_id, const char* schema, const char* part, int v
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, version, status, description, location).execute();
+
+    if (version != -1) {
+        auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, version, status, description, location).execute();
+    } else {
+        auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, NULL, status, description, location).execute();
+    }
 
     return 0;
 }
 
-int update_component(int session_id, const char* schema, const char* status, int parent) {
+int insert_log(int session_id, const char* schema, const char* userid, const char* remote_ip, const char* type, const char* date) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.update().set("status", "parent").where().execute();
+
+    auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
 
     return 0;
 }
+
+
+//int update_component(int session_id, const char* schema, const char* status, int parent) {
+//    mysqlx::Session* session;
+//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+//
+//    mysqlx::Schema schema_ = session->getSchema(schema);
+//
+//    mysqlx::Table part_table = schema_.getTable("component", true);
+//    auto rows = part_table.update().set("status", "parent").where().execute();
+//
+//    return 0;
+//}

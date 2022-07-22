@@ -82,17 +82,19 @@ int main(int argc, const char** argv) {
 
     cout << "Enter new component data" << endl;
     cout << "Enter part" << endl;
-    cin >> part;
+    getline(cin, part);
     cout << "Enter version" << endl;
     cin >> version;
     cout << "Enter status" << endl;
-    cin >> status;
+    cin.ignore();
+    getline(cin, status);
     cout << "Enter description" << endl;
-    cin >> description;
+    getline(cin, description);
     cout << "Enter location" << endl;
-    cin >> location;
+    getline(cin, location);
 
     insert_component(session_id, "cmsfpix_phase2", part.c_str(), version, status.c_str(), description.c_str(), location.c_str());
+
 
 disconnect(session_id);
 return 0;
