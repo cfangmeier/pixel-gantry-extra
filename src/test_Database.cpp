@@ -66,11 +66,11 @@ int main(int argc, const char** argv) {
 //    char serial_number[128][128];
 //    int id[128];
 //    int n_component;
-    string part;
-    string status;
-    string description;
-    string location;
-    int version;
+//    string part;
+//    string status;
+//    string description;
+//    string location;
+//    int version;
 
 
 //    cout << "Enter Part" << endl;
@@ -80,21 +80,39 @@ int main(int argc, const char** argv) {
 //        cout << id[i] << ", " << (char*) status[i] << ", " << (char*) description[i] << ", " << (char*) serial_number << ", " << (char*) location[i] << endl;
 //    }
 
-    cout << "Enter new component data" << endl;
-    cout << "Enter part" << endl;
-    getline(cin, part);
-    cout << "Enter version" << endl;
-    cin >> version;
-    cout << "Enter status" << endl;
-    cin.ignore();
-    getline(cin, status);
-    cout << "Enter description" << endl;
-    getline(cin, description);
-    cout << "Enter location" << endl;
-    getline(cin, location);
+//    cout << "Enter new component data" << endl;
+//    cout << "Enter part" << endl;
+//    getline(cin, part);
+//    cout << "Enter version" << endl;
+//    cin >> version;
+//    cout << "Enter status" << endl;
+//    cin.ignore();
+//    getline(cin, status);
+//    cout << "Enter description" << endl;
+//    getline(cin, description);
+//    cout << "Enter location" << endl;
+//    getline(cin, location);
+//
+//    insert_component(session_id, "cmsfpix_phase2", part.c_str(), version, status.c_str(), description.c_str(), location.c_str());
+//
+//
 
-    insert_component(session_id, "cmsfpix_phase2", part.c_str(), version, status.c_str(), description.c_str(), location.c_str());
 
+    string userid;
+    string remote_ip;
+    string type;
+    string date;
+
+    cout << "Enter userID" << endl;
+    getline(cin, userid);
+    cout << "Enter remote IP" << endl;
+    getline(cin, remote_ip);
+    cout << "Enter type" << endl;
+    getline(cin, type);
+    cout << "Enter date and time; Format (YYYY-MM-DD HH:mm:ss)" << endl;
+    getline(cin, date);
+
+    insert_log(session_id, "cmsfpix_phase2", userid.c_str(), remote_ip.c_str(), type.c_str(), date.c_str());
 
 disconnect(session_id);
 return 0;

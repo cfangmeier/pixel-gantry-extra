@@ -220,9 +220,13 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
-    mysqlx::Table part_table = schema_.getTable("component", true);
+    mysqlx::Table part_table = schema_.getTable("logs", true);
 
-    auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
+    if(*date != -1)  {
+        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
+    } else {
+        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
+    }
 
     return 0;
 }
