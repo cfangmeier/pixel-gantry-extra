@@ -208,7 +208,7 @@ int insert_component(int session_id, const char* schema, const char* part, int v
     if (version != -1) {
         auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, version, status, description, location).execute();
     } else {
-        auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, NULL, status, description, location).execute();
+        auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
     }
 
     return 0;
