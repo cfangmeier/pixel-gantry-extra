@@ -222,10 +222,16 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
 
     mysqlx::Table part_table = schema_.getTable("logs", true);
 
-    if(*date != -1)  {
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string s(19, '\0');
+    std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+
+    //TODO make check for bad data and either return error code or default to today date and time, use ternary operator
+
+    if ()  {
         auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
     } else {
-        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
+        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, s).execute();
     }
 
     return 0;
