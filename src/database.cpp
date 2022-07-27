@@ -234,15 +234,18 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
     return 0;
 }
 
+int update_component(int session_id, const char* schema, int id, const char* status, int parent) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
-//int update_component(int session_id, const char* schema, const char* status, int parent) {
-//    mysqlx::Session* session;
-//    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-//
-//    mysqlx::Schema schema_ = session->getSchema(schema);
-//
-//    mysqlx::Table part_table = schema_.getTable("component", true);
-//    auto rows = part_table.update().set("status", "parent").where().execute();
-//
-//    return 0;
-//}
+    mysqlx::Schema schema_ = session->getSchema(schema);
+
+    mysqlx::Table part_table = schema_.getTable("component", true);
+    auto rows = part_table.update()
+            .set("parent", parent).set("status", status)
+            .where("id = :i")
+            .bind("i", id)
+            .execute();
+
+    return 0;
+}
