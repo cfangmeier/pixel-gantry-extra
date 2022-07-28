@@ -241,8 +241,13 @@ int update_component(int session_id, const char* schema, int id, const char* sta
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
+
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string s(19, '\0');
+    std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+
     auto rows = part_table.update()
-            .set("parent", parent).set("status", status)
+            .set("parent", parent).set("status", status).set("creation_time", s)
             .where("id = :i")
             .bind("i", id)
             .execute();
