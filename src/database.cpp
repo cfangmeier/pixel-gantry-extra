@@ -214,7 +214,7 @@ int insert_component(int session_id, const char* schema, const char* part, int v
     return 0;
 }
 
-int insert_log(int session_id, const char* schema, const char* userid, const char* remote_ip, const char* type, const char* date) {
+int insert_log(int session_id, const char* schema, const char* userid, const char* remote_ip, const char* type) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
@@ -222,14 +222,13 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
 
     mysqlx::Table part_table = schema_.getTable("logs", true);
 
-    if (*date != NULL)  {
-        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, date).execute();
-    } else {
-        std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::string s(19, '\0');
-        std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
-        auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, s).execute();
-    }
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string dateTime(19, '\0');
+    //convert to gmt time
+    //to change back to localtime: localtime(&now)
+    std::strftime(&dateTime[0], dateTime.size(), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+
+    auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, dateTime).execute();
 
     return 0;
 }
@@ -243,11 +242,11 @@ int update_component(int session_id, const char* schema, int id, const char* sta
     mysqlx::Table part_table = schema_.getTable("component", true);
 
     std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string s(19, '\0');
-    std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    std::string dateTime(19, '\0');
+    std::strftime(&dateTime[0], dateTime.size(), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
 
     auto rows = part_table.update()
-            .set("parent", parent).set("status", status).set("creation_time", s)
+            .set("parent", parent).set("status", status).set("creation_time", dateTime)
             .where("id = :i")
             .bind("i", id)
             .execute();
