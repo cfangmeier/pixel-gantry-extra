@@ -100,7 +100,6 @@ int main(int argc, const char** argv) {
     string userid;
     string remote_ip;
     string type;
-    string date;
 
     cout << "Enter userID" << endl;
     getline(cin, userid);
@@ -108,10 +107,9 @@ int main(int argc, const char** argv) {
     getline(cin, remote_ip);
     cout << "Enter type" << endl;
     getline(cin, type);
-    cout << "Enter date and time; Format (YYYY-MM-DD HH:mm:ss)" << endl;
-    getline(cin, date);
 
-    insert_log(session_id, "cmsfpix_phase2", userid.c_str(), remote_ip.c_str(), type.c_str(), date.c_str());
+
+    insert_log(session_id, "cmsfpix_phase2", userid.c_str(), remote_ip.c_str(), type.c_str());
 
 //    int id;
 //    string status;
