@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "../include/utils.h"
 #include <sstream>
 #include <fstream>
 #include "opencv2/opencv.hpp"
@@ -19,7 +19,7 @@ __declspec(dllexport) void __cdecl show(cv::Mat img) {
 }
 
 
-std::string log_filedir = "";
+std::string log_filedir;
 void set_log_filedir(const std::string& new_log_filedir) {
     log_filedir = new_log_filedir;
 }
@@ -42,3 +42,4 @@ void log(std::stringstream& data) {
     log(data.str());
     data.str("");
 }
+

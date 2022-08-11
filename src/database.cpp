@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <map>
 #include <string>
 #include <mysqlx/xdevapi.h>
@@ -7,17 +8,33 @@
 
 using namespace std;
 
-#define STR_LEN 128
-#define ARR_LEN 128
 
 map<int, mysqlx::Session*> sessions;
 int session_cntr = 0;
 
-int connect(const char* connection_string) {
-    std::cout << "Connecting to db " << connection_string << std::endl;
+std::string get_current_utc_timestamp() {
+    using namespace std;
+    using namespace std::chrono;
+    std::time_t now = system_clock::to_time_t(system_clock::now());
+    stringstream ss;
+    ss << put_time(std::gmtime(&now), "%Y-%m-%d %H:%M:%S");
+    return ss.str();
+}
+
+int connect(const char* username, const char* password, const char* url, int port) {
+    stringstream conn_str;
+    conn_str << "mysqlx://" << username << ":" << password << "@";
+
+    if (url == nullptr) conn_str << "localhost";
+    else conn_str << url;
+
+    if (port < 0) conn_str << ":" << 33060;
+    else conn_str << ":" << port;
+
+    std::cout << "Connecting to db " << conn_str.str() << std::endl;
     mysqlx::Session* session;
     try {
-        session = new mysqlx::Session(connection_string);
+        session = new mysqlx::Session(conn_str.str().c_str());
         sessions[session_cntr] = session;
         session_cntr++;
         return session_cntr - 1;
@@ -43,10 +60,10 @@ int get_schemas(int session_id, int* n_schemas, char* schemas) {
     auto schemas_ = session->getSchemas();
     int idx = 0;
     for (const auto& schema : schemas_) {
-        if (idx == ARR_LEN) break;
+        if (idx == DB_ARR_LEN) break;
         string s = schema.getName();
-        if (s.size() >= STR_LEN) continue;
-        memcpy(schemas+idx*STR_LEN, s.c_str(), s.size()+1);
+        if (s.size() >= DB_STR_LEN) continue;
+        memcpy(schemas+idx*DB_STR_LEN, s.c_str(), s.size()+1);
         idx++;
     }
     *n_schemas = idx;
@@ -66,7 +83,7 @@ int query_parts(int session_id, const char* schema, int* n_parts, char* part, in
     for (const auto row : rows) {
         string row_part = row[0].get<string>();
         int row_version = row[1].get<int>();
-        memcpy(part + idx*STR_LEN, row_part.c_str(), row_part.size()+1);
+        memcpy(part + idx*DB_STR_LEN, row_part.c_str(), row_part.size()+1);
         *(version + idx) = row_version;
         idx++;
     }
@@ -90,8 +107,8 @@ int query_complaint(int session_id, const char* schema, int* n_complaint, char* 
         string row_description = row[2].get<string>();
         string row_who = row[3].get<string>();
         //offset to go to next row, think of 2D array
-        memcpy(description + idx*STR_LEN, row_description.c_str(), row_description.size()+1);
-        memcpy(who + idx*STR_LEN, row_who.c_str(), row_who.size()+1);
+        memcpy(description + idx*DB_STR_LEN, row_description.c_str(), row_description.size()+1);
+        memcpy(who + idx*DB_STR_LEN, row_who.c_str(), row_who.size()+1);
         *(id + idx) = row_id;
         idx++;
     }
@@ -108,32 +125,31 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
     mysqlx::Table part_table = schema_.getTable("people", true);
     auto rows = part_table.select("*").execute();
 
-    string row_timezone = "";
     int idx = 0;
-
     for (const auto row: rows) {
         string row_username = row[0].get<string>();
         string row_name = row[1].get<string>();
         string row_full_name = row[2].get<string>();
         string row_email = row[3].get<string>();
         string row_institute = row[4].get<string>();
+        string row_timezone;
         if(!row[6].isNull()) {
-        row_timezone = row[6].get<string>();
-    }
+            row_timezone = row[6].get<string>();
+        }
 
-        memcpy(username + idx*STR_LEN, row_username.c_str(), row_username.size() + 1);
-        memcpy(name + idx*STR_LEN, row_name.c_str(), row_name.size() + 1);
-        memcpy(full_name + idx*STR_LEN, row_full_name.c_str(), row_full_name.size() + 1);
-        memcpy(email + idx*STR_LEN, row_email.c_str(), row_email.size() + 1);
-        memcpy(institute + idx*STR_LEN, row_institute.c_str(), row_institute.size() + 1);
-        memcpy(timezone + idx*STR_LEN, row_timezone.c_str(), row_timezone.size() + 1);
+        memcpy(username + idx*DB_STR_LEN, row_username.c_str(), row_username.size() + 1);
+        memcpy(name + idx*DB_STR_LEN, row_name.c_str(), row_name.size() + 1);
+        memcpy(full_name + idx*DB_STR_LEN, row_full_name.c_str(), row_full_name.size() + 1);
+        memcpy(email + idx*DB_STR_LEN, row_email.c_str(), row_email.size() + 1);
+        memcpy(institute + idx*DB_STR_LEN, row_institute.c_str(), row_institute.size() + 1);
+        memcpy(timezone + idx*DB_STR_LEN, row_timezone.c_str(), row_timezone.size() + 1);
         idx++;
     }
     *n_people = idx;
     return 0;
 }
 
-int query_specific_password(int session_id, const char* schema, const char* username, const char* password) {
+int check_login(int session_id, const char* schema, const char* username, const char* password) {
     /*
      * Return
      *   0: Password check passed
@@ -156,19 +172,19 @@ int query_specific_password(int session_id, const char* schema, const char* user
     return 2;
 }
 
-int query_component(int session_id, const char* schema, const char* part, int* n_component, int* id, char* status, char* description, char* serial_number,  char* location) {
+int query_components(int session_id, const char* schema, const char* part, int* n_component, int* id, char* status, char* description, char* serial_number,  char* location) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
     mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.select("id", "status", "description", "serial_number", "location").where("part = :component").bind("component", part).execute();
+    auto rows = part_table.select("id", "status", "description", "serial_number", "location").where("part = :part").bind("part", part).execute();
 
-    string row_status = "";
-    string row_description = "";
-    string row_serial_number = "";
-    string row_location = "";
+    string row_status;
+    string row_description;
+    string row_serial_number;
+    string row_location;
     int idx = 0;
 
     for(mysqlx::Row row : rows.fetchAll()) {
@@ -186,10 +202,10 @@ int query_component(int session_id, const char* schema, const char* part, int* n
             row_location = row[4].get<string>();
         }
 
-        memcpy(status + idx*STR_LEN, row_status.c_str(), row_status.size() + 1);
-        memcpy(description + idx*STR_LEN, row_description.c_str(), row_description.size() + 1);
-        memcpy(serial_number + idx*STR_LEN, row_serial_number.c_str(), row_serial_number.size() + 1);
-        memcpy(location + idx*STR_LEN, row_location.c_str(), row_location.size() + 1);
+        memcpy(status + idx*DB_STR_LEN, row_status.c_str(), row_status.size() + 1);
+        memcpy(description + idx*DB_STR_LEN, row_description.c_str(), row_description.size() + 1);
+        memcpy(serial_number + idx*DB_STR_LEN, row_serial_number.c_str(), row_serial_number.size() + 1);
+        memcpy(location + idx*DB_STR_LEN, row_location.c_str(), row_location.size() + 1);
         *(id + idx) = row_id;
         idx++;
     }
@@ -197,20 +213,28 @@ int query_component(int session_id, const char* schema, const char* part, int* n
     return 0;
 }
 
-int insert_component(int session_id, const char* schema, const char* part, int version, const char* status, const char* description, const char* location) {
+int insert_component(int session_id, const char* schema, const char* part, int version, const char* status,
+                     const char* description, const char* who, const char* serial_number, const char* location) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
 
-    mysqlx::Table part_table = schema_.getTable("component", true);
+    mysqlx::Table component_table = schema_.getTable("component", true);
 
-    if (version != -1) {
-        auto rows = part_table.insert("part", "version", "status", "description", "location").values(part, version, status, description, location).execute();
-    } else {
-        auto rows = part_table.insert("part", "status", "description", "location").values(part, status, description, location).execute();
-    }
+    string creation_time = get_current_utc_timestamp();
+    auto result = component_table.insert("part", "version", "status", "description", "who", "serial_number", "creation_time", "location")
+            .values(part, version, status, description, who, serial_number, creation_time.c_str(), location).execute();
+    return (int) result.getAutoIncrementValue();
+}
 
+int remove_component(int session_id, const char* schema, int component_id) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+
+    mysqlx::Schema schema_ = session->getSchema(schema);
+    mysqlx::Table component_table = schema_.getTable("component", true);
+    component_table.remove().where("id = :id").bind("id", component_id).execute();
     return 0;
 }
 
@@ -222,14 +246,9 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
 
     mysqlx::Table part_table = schema_.getTable("logs", true);
 
-    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string dateTime(19, '\0');
-    //convert to gmt time
-    //to change back to localtime: localtime(&now)
-    std::strftime(&dateTime[0], dateTime.size(), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    string now = get_current_utc_timestamp();
 
-    auto rows = part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, dateTime).execute();
-
+    part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, now.c_str()).execute();
     return 0;
 }
 
@@ -241,12 +260,12 @@ int update_component(int session_id, const char* schema, int id, const char* sta
 
     mysqlx::Table part_table = schema_.getTable("component", true);
 
-    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string dateTime(19, '\0');
-    std::strftime(&dateTime[0], dateTime.size(), "%Y-%m-%d %H:%M:%S", std::gmtime(&now));
+    string now = get_current_utc_timestamp();
 
     auto rows = part_table.update()
-            .set("parent", parent).set("status", status).set("creation_time", dateTime)
+            .set("parent", parent)
+            .set("status", status)
+            .set("creation_time", now.c_str())
             .where("id = :i")
             .bind("i", id)
             .execute();
