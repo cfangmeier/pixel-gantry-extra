@@ -8,6 +8,9 @@
 
 using namespace std;
 
+#define with_default(c, default, type) (c).isNull() ? default : (c).get<type>()
+#define cp_to_buffer(buf, str) memcpy((buf) + (idx)*DB_STR_LEN, (str).c_str(), (str).size()+1 > DB_STR_LEN ? DB_STR_LEN : (str).size()+1)
+
 
 map<int, mysqlx::Session*> sessions;
 int session_cntr = 0;
@@ -53,6 +56,28 @@ int disconnect(int session_id) {
     return 0;
 }
 
+int start_transaction(int session_id) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+
+    try { session->startTransaction(); } catch (exception &e) { return -1; }
+    return 0;
+}
+
+int rollback_transaction(int session_id) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+    try { session->rollback(); } catch (exception &e) { return -1; }
+    return 0;
+}
+
+int finish_transaction(int session_id) {
+    mysqlx::Session* session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+    try { session->commit(); } catch (exception &e) { return -1; }
+    return 0;
+}
+
 int get_schemas(int session_id, int* n_schemas, char* schemas) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
@@ -62,15 +87,15 @@ int get_schemas(int session_id, int* n_schemas, char* schemas) {
     for (const auto& schema : schemas_) {
         if (idx == DB_ARR_LEN) break;
         string s = schema.getName();
-        if (s.size() >= DB_STR_LEN) continue;
-        memcpy(schemas+idx*DB_STR_LEN, s.c_str(), s.size()+1);
+        cp_to_buffer(schemas, s);
         idx++;
     }
     *n_schemas = idx;
     return 0;
 }
 
-int query_parts(int session_id, const char* schema, int* n_parts, char* part, int* version) {
+int query_parts(int session_id, const char* schema, int* n_parts, char* part, int* version, char* description,
+                char* prefix, float* dim_x, float* dim_y, float* dim_z, char* type) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
@@ -81,10 +106,25 @@ int query_parts(int session_id, const char* schema, int* n_parts, char* part, in
 
     int idx = 0;
     for (const auto row : rows) {
-        string row_part = row[0].get<string>();
-        int row_version = row[1].get<int>();
-        memcpy(part + idx*DB_STR_LEN, row_part.c_str(), row_part.size()+1);
+        if (idx >= DB_ARR_LEN) break;
+        string row_part = with_default(row[0], "", string);
+        int row_version = with_default(row[1], -1, int);
+        string row_description = with_default(row[2], "", string);
+        string row_prefix = with_default(row[3], "", string);
+        float row_dim_x = with_default(row[4], -1, float);
+        float row_dim_y = with_default(row[5], -1, float);
+        float row_dim_z = with_default(row[6], -1, float);
+        string row_type = with_default(row[7], "", string);
+
+        cp_to_buffer(part, row_part);
         *(version + idx) = row_version;
+        cp_to_buffer(description, row_description);
+        cp_to_buffer(prefix, row_prefix);
+        *(dim_x + idx) = row_dim_x;
+        *(dim_y + idx) = row_dim_y;
+        *(dim_z + idx) = row_dim_z;
+        cp_to_buffer(type, row_type);
+
         idx++;
     }
     *n_parts = idx;
@@ -103,13 +143,16 @@ int query_complaint(int session_id, const char* schema, int* n_complaint, char* 
 
     int idx = 0;
     for (const auto row : rows) {
-        int row_id = row[0].get<int>();
-        string row_description = row[2].get<string>();
-        string row_who = row[3].get<string>();
-        //offset to go to next row, think of 2D array
-        memcpy(description + idx*DB_STR_LEN, row_description.c_str(), row_description.size()+1);
-        memcpy(who + idx*DB_STR_LEN, row_who.c_str(), row_who.size()+1);
+        if (idx >= DB_ARR_LEN) break;
+
+        int row_id = with_default(row[0], -1, int);
+        string row_description = with_default(row[2], "", string);
+        string row_who = with_default(row[3], "", string);
+
         *(id + idx) = row_id;
+        cp_to_buffer(description, row_description);
+        cp_to_buffer(who, row_who);
+
         idx++;
     }
     *n_complaint = idx;
@@ -127,22 +170,22 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
 
     int idx = 0;
     for (const auto row: rows) {
-        string row_username = row[0].get<string>();
-        string row_name = row[1].get<string>();
-        string row_full_name = row[2].get<string>();
-        string row_email = row[3].get<string>();
-        string row_institute = row[4].get<string>();
-        string row_timezone;
-        if(!row[6].isNull()) {
-            row_timezone = row[6].get<string>();
-        }
+        if (idx >= DB_ARR_LEN) break;
 
-        memcpy(username + idx*DB_STR_LEN, row_username.c_str(), row_username.size() + 1);
-        memcpy(name + idx*DB_STR_LEN, row_name.c_str(), row_name.size() + 1);
-        memcpy(full_name + idx*DB_STR_LEN, row_full_name.c_str(), row_full_name.size() + 1);
-        memcpy(email + idx*DB_STR_LEN, row_email.c_str(), row_email.size() + 1);
-        memcpy(institute + idx*DB_STR_LEN, row_institute.c_str(), row_institute.size() + 1);
-        memcpy(timezone + idx*DB_STR_LEN, row_timezone.c_str(), row_timezone.size() + 1);
+        string row_username = with_default(row[0], "", string);
+        string row_name = with_default(row[1], "", string);
+        string row_full_name = with_default(row[2], "", string);
+        string row_email = with_default(row[3], "", string);
+        string row_institute = with_default(row[4], "", string);
+        string row_timezone = with_default(row[6], "", string);
+
+        cp_to_buffer(username, row_username);
+        cp_to_buffer(name, row_name);
+        cp_to_buffer(full_name, row_full_name);
+        cp_to_buffer(email, row_email);
+        cp_to_buffer(institute, row_institute);
+        cp_to_buffer(timezone, row_timezone);
+
         idx++;
     }
     *n_people = idx;
@@ -181,32 +224,22 @@ int query_components(int session_id, const char* schema, const char* part, int* 
     mysqlx::Table part_table = schema_.getTable("component", true);
     auto rows = part_table.select("id", "status", "description", "serial_number", "location").where("part = :part").bind("part", part).execute();
 
-    string row_status;
-    string row_description;
-    string row_serial_number;
-    string row_location;
     int idx = 0;
-
     for(mysqlx::Row row : rows.fetchAll()) {
-        int row_id = row[0].get<int>();
-        if(!row[1].isNull()) {
-            row_status = row[1].get<string>();
-        }
-        if(!row[2].isNull()) {
-            row_description = row[2].get<string>();
-        }
-        if(!row[3].isNull()) {
-            row_serial_number = row[3].get<string>();
-        }
-        if(!row[4].isNull()) {
-            row_location = row[4].get<string>();
-        }
+        if (idx >= DB_ARR_LEN) break;
 
-        memcpy(status + idx*DB_STR_LEN, row_status.c_str(), row_status.size() + 1);
-        memcpy(description + idx*DB_STR_LEN, row_description.c_str(), row_description.size() + 1);
-        memcpy(serial_number + idx*DB_STR_LEN, row_serial_number.c_str(), row_serial_number.size() + 1);
-        memcpy(location + idx*DB_STR_LEN, row_location.c_str(), row_location.size() + 1);
+        int row_id = with_default(row[0], -1, int);
+        string row_status = with_default(row[1], "", string);
+        string row_description = with_default(row[1], "", string);
+        string row_serial_number = with_default(row[1], "", string);
+        string row_location = with_default(row[1], "", string);
+
         *(id + idx) = row_id;
+        cp_to_buffer(status, row_status);
+        cp_to_buffer(description, row_description);
+        cp_to_buffer(serial_number, row_serial_number);
+        cp_to_buffer(location, row_location);
+
         idx++;
     }
     *n_component = idx;
@@ -243,21 +276,18 @@ int insert_log(int session_id, const char* schema, const char* userid, const cha
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
 
     mysqlx::Schema schema_ = session->getSchema(schema);
-
     mysqlx::Table part_table = schema_.getTable("logs", true);
-
     string now = get_current_utc_timestamp();
 
-    part_table.insert("userid", "remote_ip", "type", "date").values(userid, remote_ip, type, now.c_str()).execute();
-    return 0;
+    auto result = part_table.insert("userid", "remote_ip", "type", "date")
+            .values(userid, remote_ip, type, now.c_str()).execute();
+    return (int) result.getAutoIncrementValue();
 }
 
 int update_component(int session_id, const char* schema, int id, const char* status, int parent) {
     mysqlx::Session* session;
     try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-
     mysqlx::Schema schema_ = session->getSchema(schema);
-
     mysqlx::Table part_table = schema_.getTable("component", true);
 
     string now = get_current_utc_timestamp();
@@ -269,6 +299,20 @@ int update_component(int session_id, const char* schema, int id, const char* sta
             .where("id = :i")
             .bind("i", id)
             .execute();
+
+    return 0;
+}
+
+int insert_test(int session_id, const char *schema, const char *description, const char *data, int component_id,
+                const char *type) {
+    mysqlx::Session *session;
+    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+    mysqlx::Schema schema_ = session->getSchema(schema);
+    mysqlx::Table test_table = schema_.getTable("tests", true);
+
+    string now = get_current_utc_timestamp();
+    test_table.insert("date", "description", "data", "part_id", "type")
+            .values(now, description, data, component_id, type).execute();
 
     return 0;
 }
