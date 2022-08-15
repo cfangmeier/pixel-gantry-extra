@@ -17,6 +17,8 @@ extern "C" {
     DLLExport int __cdecl start_transaction(int session_id);
     DLLExport int __cdecl rollback_transaction(int session_id);
     DLLExport int __cdecl finish_transaction(int session_id);
+    DLLExport int __cdecl max_string_length() {return DB_STR_LEN;};
+    DLLExport int __cdecl max_array_length() {return DB_ARR_LEN;};
     DLLExport int __cdecl get_schemas(int session_id, int* n_schemas, char* schemas);
     DLLExport int __cdecl query_parts(int session_id, const char* schema, int* n_parts, char* part, int* version,
                                       char* description, char* prefix, float* dim_x, float* dim_y, float* dim_z, char* type);

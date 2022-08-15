@@ -14,8 +14,8 @@
 #include <cmath>
 #include <limits>
 
-#include "../include/utils.h"
-#include "../include/vision.h"
+#include "vision_utils.h"
+#include "vision.h"
 
 using namespace std;
 

@@ -10,7 +10,7 @@ using namespace std;
 #define TEST(test_name, ...) {\
         std::cout << "Running Test: " << #test_name << "...  " << std::flush;\
         int code=test_name(__VA_ARGS__);                                     \
-        if (code == 0) std::cout << "SUCCESS" << std::endl;                  \
+        if (code == 0) std::cout << "PASSED!" << std::endl;                  \
         else cout << "FAILURE! Exit-Code=" << code << std::endl;             \
     }
 
@@ -252,22 +252,34 @@ int test_insert_test(int session_id, const char* schema) {
 }
 
 int main(int argc, const char** argv) {
-    VERBOSE = false;
+    VERBOSE = true;
     std::cout << "Program Started" << std::endl;
-    int session_id = connect("root", "carriker", nullptr, -1);
+//    int session_id = connect("root", "carriker", nullptr, -1);
+    const char* username = getenv("DB_USERNAME");
+    const char* password = getenv("DB_PASSWORD");
+    const char* url = getenv("DB_URL");
+    const char* port = getenv("DB_PORT");
+    if (username == nullptr) username = "root";
+    if (password == nullptr) password = "password";
+    if (url == nullptr) url = "localhost";
+    if (port == nullptr) port = "33060";
+    int port_ = atoi(port);
+
+
+    int session_id = connect(username, password, url, port_);
     if (session_id < 0) return 0;
 
     TEST(test_get_schemas, session_id)
-    TEST(test_check_login, session_id, "cmsfpix_phase2", "amironov", "blueberries")
-    TEST(test_query_components, session_id, "cmsfpix_phase2", "rd53a_chip");
-    TEST(test_insert_component, session_id, "cmsfpix_phase2");
-    TEST(test_remove_component, session_id, "cmsfpix_phase2");
-    TEST(test_insert_log, session_id, "cmsfpix_phase2");
-    TEST(test_query_complaint, session_id, "cmsfpix_phase2");
-    TEST(test_query_parts, session_id, "cmsfpix_phase2");
-    TEST(test_query_people, session_id, "cmsfpix_phase2");
-    TEST(test_update_component, session_id, "cmsfpix_phase2");
-    TEST(test_insert_test, session_id, "cmsfpix_phase2");
+//    TEST(test_check_login, session_id, "cmsfpix_phase2", "amironov", "blueberries")
+//    TEST(test_query_components, session_id, "cmsfpix_phase2", "rd53a_chip");
+//    TEST(test_insert_component, session_id, "cmsfpix_phase2");
+//    TEST(test_remove_component, session_id, "cmsfpix_phase2");
+//    TEST(test_insert_log, session_id, "cmsfpix_phase2");
+//    TEST(test_query_complaint, session_id, "cmsfpix_phase2");
+//    TEST(test_query_parts, session_id, "cmsfpix_phase2");
+//    TEST(test_query_people, session_id, "cmsfpix_phase2");
+//    TEST(test_update_component, session_id, "cmsfpix_phase2");
+//    TEST(test_insert_test, session_id, "cmsfpix_phase2");
 
     disconnect(session_id);
     return 0;

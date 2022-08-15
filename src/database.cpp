@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <map>
 #include <string>
+#include <regex>
 #include <mysqlx/xdevapi.h>
 #include "database.h"
 #include "sha512.h"
@@ -24,20 +25,34 @@ std::string get_current_utc_timestamp() {
     return ss.str();
 }
 
-int connect(const char* username, const char* password, const char* url, int port) {
-    stringstream conn_str;
-    conn_str << "mysqlx://" << username << ":" << password << "@";
+int connect(const char* username, const char* password, const char* host, int port) {
+//    stringstream conn_str_ss;
+//    conn_str_ss << "mysqlx://" << username << ":" << password << "@";
+//
+//    if (host == nullptr) conn_str_ss << "localhost";
+//    else conn_str_ss << host;
+//
+//    if (port < 0) conn_str_ss << ":" << 33060;
+//    else conn_str_ss << ":" << port;
+//
+//    string conn_str = conn_str_ss.str();
+//    string conn_str_corrected(conn_str.size()*2, '\0');
+//
+//    // Need to replace any " " in conn_str_ss with "%20"
+//    try {
+//        regex space("[[:space:]]");
+//        regex_replace(conn_str_corrected.begin(), conn_str.begin(), conn_str.end(), space, "%20");
+//    } catch (regex_error &e) {
+//        cout << e.what() << endl;
+//        return -1;
+//    }
 
-    if (url == nullptr) conn_str << "localhost";
-    else conn_str << url;
-
-    if (port < 0) conn_str << ":" << 33060;
-    else conn_str << ":" << port;
-
-    std::cout << "Connecting to db " << conn_str.str() << std::endl;
+    cout << "Connecting to host " << host << ":" << port << endl;
+//    std::cout << "Connecting to db " << conn_str_corrected << std::endl;
     mysqlx::Session* session;
     try {
-        session = new mysqlx::Session(conn_str.str().c_str());
+//        session = new mysqlx::Session(conn_str_corrected.c_str());
+        session = new mysqlx::Session(host, port, username, password);
         sessions[session_cntr] = session;
         session_cntr++;
         return session_cntr - 1;
@@ -230,9 +245,9 @@ int query_components(int session_id, const char* schema, const char* part, int* 
 
         int row_id = with_default(row[0], -1, int);
         string row_status = with_default(row[1], "", string);
-        string row_description = with_default(row[1], "", string);
-        string row_serial_number = with_default(row[1], "", string);
-        string row_location = with_default(row[1], "", string);
+        string row_description = with_default(row[2], "", string);
+        string row_serial_number = with_default(row[3], "", string);
+        string row_location = with_default(row[4], "", string);
 
         *(id + idx) = row_id;
         cp_to_buffer(status, row_status);
