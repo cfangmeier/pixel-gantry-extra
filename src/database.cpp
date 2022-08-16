@@ -2,19 +2,42 @@
 #include <iomanip>
 #include <map>
 #include <string>
+#include <chrono>
+#include <sstream>
 #include <regex>
-#include <mysqlx/xdevapi.h>
+#include <mysql/jdbc.h>
 #include "database.h"
 #include "sha512.h"
 
 using namespace std;
+using namespace sql;
 
-#define with_default(c, default, type) (c).isNull() ? default : (c).get<type>()
 #define cp_to_buffer(buf, str) memcpy((buf) + (idx)*DB_STR_LEN, (str).c_str(), (str).size()+1 > DB_STR_LEN ? DB_STR_LEN : (str).size()+1)
 
+int with_default(ResultSet* rs, unsigned int col_idx, int default_) {
+    if (rs->isNull(col_idx)) return default_;
+    else return rs->getInt(col_idx);
+}
 
-map<int, mysqlx::Session*> sessions;
-int session_cntr = 0;
+float with_default(ResultSet* rs, unsigned int col_idx, float default_) {
+    if (rs->isNull(col_idx)) return default_;
+    else return (float) rs->getDouble(col_idx);
+}
+
+string with_default(ResultSet* rs, unsigned int col_idx, string default_) {
+    if (rs->isNull(col_idx)) return default_;
+    else return rs->getString(col_idx);
+}
+
+
+int get_last_insert_id(sql::Connection* conn) {
+    unique_ptr<sql::ResultSet> result(conn->createStatement()->executeQuery("SELECT last_insert_id()"));
+    result->next();
+    return result->getInt(1);
+}
+
+map<int, sql::Connection*> connections;
+int conn_cntr = 0;
 
 std::string get_current_utc_timestamp() {
     using namespace std;
@@ -25,37 +48,17 @@ std::string get_current_utc_timestamp() {
     return ss.str();
 }
 
-int connect(const char* username, const char* password, const char* host, int port) {
-//    stringstream conn_str_ss;
-//    conn_str_ss << "mysqlx://" << username << ":" << password << "@";
-//
-//    if (host == nullptr) conn_str_ss << "localhost";
-//    else conn_str_ss << host;
-//
-//    if (port < 0) conn_str_ss << ":" << 33060;
-//    else conn_str_ss << ":" << port;
-//
-//    string conn_str = conn_str_ss.str();
-//    string conn_str_corrected(conn_str.size()*2, '\0');
-//
-//    // Need to replace any " " in conn_str_ss with "%20"
-//    try {
-//        regex space("[[:space:]]");
-//        regex_replace(conn_str_corrected.begin(), conn_str.begin(), conn_str.end(), space, "%20");
-//    } catch (regex_error &e) {
-//        cout << e.what() << endl;
-//        return -1;
-//    }
+
+int connect(const char* username, const char* password, const char* host, const char* schema, int port) {
 
     cout << "Connecting to host " << host << ":" << port << endl;
-//    std::cout << "Connecting to db " << conn_str_corrected << std::endl;
-    mysqlx::Session* session;
     try {
-//        session = new mysqlx::Session(conn_str_corrected.c_str());
-        session = new mysqlx::Session(host, port, username, password);
-        sessions[session_cntr] = session;
-        session_cntr++;
-        return session_cntr - 1;
+        sql::Driver * driver = sql::mysql::get_driver_instance();
+        sql::Connection *conn = driver->connect(host, username, password);
+        conn->setSchema(schema);
+        connections[conn_cntr] = conn;
+        conn_cntr++;
+        return conn_cntr - 1;
     } catch(std::exception &e){
         std::cout << e.what() << std::endl;
         std::cout << "Failed to connect" << std::endl;
@@ -63,73 +66,56 @@ int connect(const char* username, const char* password, const char* host, int po
     }
 }
 
-int disconnect(int session_id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-    session->close();
-    sessions.erase(session_id);
+int disconnect(int conn_id) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+    conn->close();
+    connections.erase(conn_id);
     return 0;
 }
 
-int start_transaction(int session_id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-
-    try { session->startTransaction(); } catch (exception &e) { return -1; }
+int start_transaction(int conn_id) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+    conn->setSavepoint();
     return 0;
 }
 
-int rollback_transaction(int session_id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-    try { session->rollback(); } catch (exception &e) { return -1; }
+int rollback_transaction(int conn_id) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+    conn->rollback();
     return 0;
 }
 
-int finish_transaction(int session_id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-    try { session->commit(); } catch (exception &e) { return -1; }
+int finish_transaction(int conn_id) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+    conn->commit();
     return 0;
 }
 
-int get_schemas(int session_id, int* n_schemas, char* schemas) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+int query_parts(int conn_id, int* n_parts, char* part, int* version, char* description, char* prefix,
+                float* dim_x, float* dim_y, float* dim_z, char* type) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    auto schemas_ = session->getSchemas();
-    int idx = 0;
-    for (const auto& schema : schemas_) {
-        if (idx == DB_ARR_LEN) break;
-        string s = schema.getName();
-        cp_to_buffer(schemas, s);
-        idx++;
-    }
-    *n_schemas = idx;
-    return 0;
-}
-
-int query_parts(int session_id, const char* schema, int* n_parts, char* part, int* version, char* description,
-                char* prefix, float* dim_x, float* dim_y, float* dim_z, char* type) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("parts", true);
-    auto rows = part_table.select("*").execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "SELECT part, version, description, prefix, dim_x, dim_y, dim_z, type from parts"
+    ));
+    unique_ptr<sql::ResultSet> components(stmt->executeQuery());
 
     int idx = 0;
-    for (const auto row : rows) {
+    while (components->next()) {
         if (idx >= DB_ARR_LEN) break;
-        string row_part = with_default(row[0], "", string);
-        int row_version = with_default(row[1], -1, int);
-        string row_description = with_default(row[2], "", string);
-        string row_prefix = with_default(row[3], "", string);
-        float row_dim_x = with_default(row[4], -1, float);
-        float row_dim_y = with_default(row[5], -1, float);
-        float row_dim_z = with_default(row[6], -1, float);
-        string row_type = with_default(row[7], "", string);
+        string row_part = with_default(components.get(), 1, "");
+        int row_version = with_default(components.get(), 2, -1);
+        string row_description = with_default(components.get(), 3, "");
+        string row_prefix = with_default(components.get(), 4, "");
+        float row_dim_x = with_default(components.get(), 5, -1.0f);
+        float row_dim_y = with_default(components.get(), 6, -1.0f);
+        float row_dim_z = with_default(components.get(), 7, -1.0f);
+        string row_type = with_default(components.get(), 8, "");
 
         cp_to_buffer(part, row_part);
         *(version + idx) = row_version;
@@ -143,56 +129,28 @@ int query_parts(int session_id, const char* schema, int* n_parts, char* part, in
         idx++;
     }
     *n_parts = idx;
-
     return 0;
 }
 
-int query_complaint(int session_id, const char* schema, int* n_complaint, char* who , char* description, int* id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+int query_people(int conn_id, int* n_people, char* username , char* name, char* full_name, char* email, char* institute, char* timezone) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("complaint", true);
-    auto rows = part_table.select("*").execute();
-
-    int idx = 0;
-    for (const auto row : rows) {
-        if (idx >= DB_ARR_LEN) break;
-
-        int row_id = with_default(row[0], -1, int);
-        string row_description = with_default(row[2], "", string);
-        string row_who = with_default(row[3], "", string);
-
-        *(id + idx) = row_id;
-        cp_to_buffer(description, row_description);
-        cp_to_buffer(who, row_who);
-
-        idx++;
-    }
-    *n_complaint = idx;
-    return 0;
-}
-
-int query_people(int session_id, const char* schema, int* n_people, char* username , char* name, char* full_name, char* email, char* institute, char* timezone) {
-    mysqlx::Session *session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("*").execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "SELECT username, name, full_name, email, institute, timezone FROM people"
+    ));
+    unique_ptr<sql::ResultSet> people(stmt->executeQuery());
 
     int idx = 0;
-    for (const auto row: rows) {
+    while (people->next()) {
         if (idx >= DB_ARR_LEN) break;
 
-        string row_username = with_default(row[0], "", string);
-        string row_name = with_default(row[1], "", string);
-        string row_full_name = with_default(row[2], "", string);
-        string row_email = with_default(row[3], "", string);
-        string row_institute = with_default(row[4], "", string);
-        string row_timezone = with_default(row[6], "", string);
+        string row_username = with_default(people.get(), 1, "");
+        string row_name = with_default(people.get(), 2, "");
+        string row_full_name = with_default(people.get(), 3, "");
+        string row_email = with_default(people.get(), 4, "");
+        string row_institute = with_default(people.get(), 5, "");
+        string row_timezone = with_default(people.get(), 6, "");
 
         cp_to_buffer(username, row_username);
         cp_to_buffer(name, row_name);
@@ -207,47 +165,48 @@ int query_people(int session_id, const char* schema, int* n_people, char* userna
     return 0;
 }
 
-int check_login(int session_id, const char* schema, const char* username, const char* password) {
+int check_login(int conn_id, const char* username, const char* password) {
     /*
      * Return
      *   0: Password check passed
      *   1: User exists & password failed
      *   2: User does not exist
      */
-    mysqlx::Session *session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement("SELECT password FROM people WHERE username = ?"));
+    stmt->setString(1, username);
+    unique_ptr<sql::ResultSet> people(stmt->executeQuery());
 
-    mysqlx::Table part_table = schema_.getTable("people", true);
-    auto rows = part_table.select("password").where("username = :name").bind("name", username).execute();
-    mysqlx::Row row;
-    if ((row = rows.fetchOne())) {
-        mysqlx::string s = row[0].get<mysqlx::string>();
-        string input = sha512(password);
-        return s == input ? 0 : 1;
+    if (people->rowsCount() != 1) {
+        return 2;
     }
-    return 2;
+    people->next();
+    string db_hashed = people->getString(1);
+    string input_hashed = sha512(password);
+    return db_hashed == input_hashed ? 0 : 1;
 }
 
-int query_components(int session_id, const char* schema, const char* part, int* n_component, int* id, char* status, char* description, char* serial_number,  char* location) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+int query_components(int conn_id, const char* part, int* n_component, int* id, char* status, char* description, char* serial_number,  char* location) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table part_table = schema_.getTable("component", true);
-    auto rows = part_table.select("id", "status", "description", "serial_number", "location").where("part = :part").bind("part", part).execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "SELECT id, status, description, serial_number, location FROM component WHERE part = ?"
+            ));
+    stmt->setString(1, part);
+    unique_ptr<sql::ResultSet> components(stmt->executeQuery());
 
     int idx = 0;
-    for(mysqlx::Row row : rows.fetchAll()) {
+    while (components->next()) {
         if (idx >= DB_ARR_LEN) break;
 
-        int row_id = with_default(row[0], -1, int);
-        string row_status = with_default(row[1], "", string);
-        string row_description = with_default(row[2], "", string);
-        string row_serial_number = with_default(row[3], "", string);
-        string row_location = with_default(row[4], "", string);
+        int row_id = with_default(components.get(), 1, -1);
+        string row_status = with_default(components.get(), 2, "");
+        string row_description = with_default(components.get(), 3, "");
+        string row_serial_number = with_default(components.get(), 4, "");
+        string row_location = with_default(components.get(), 5, "");
 
         *(id + idx) = row_id;
         cp_to_buffer(status, row_status);
@@ -261,73 +220,90 @@ int query_components(int session_id, const char* schema, const char* part, int* 
     return 0;
 }
 
-int insert_component(int session_id, const char* schema, const char* part, int version, const char* status,
-                     const char* description, const char* who, const char* serial_number, const char* location) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-
-    mysqlx::Schema schema_ = session->getSchema(schema);
-
-    mysqlx::Table component_table = schema_.getTable("component", true);
+int insert_component(int conn_id, const char* part, int version, const char* status, const char* description,
+                     const char* who, const char* serial_number, const char* location) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     string creation_time = get_current_utc_timestamp();
-    auto result = component_table.insert("part", "version", "status", "description", "who", "serial_number", "creation_time", "location")
-            .values(part, version, status, description, who, serial_number, creation_time.c_str(), location).execute();
-    return (int) result.getAutoIncrementValue();
+
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "INSERT INTO component (part, version, status, description, who, serial_number, creation_time, location) "
+            "VALUES (?,?,?,?,?,?,?,?)"
+    ));
+    stmt->setString(1, part);
+    stmt->setInt(2, version);
+    stmt->setString(3, status);
+    stmt->setString(4, description);
+    stmt->setString(5, who);
+    stmt->setString(6, serial_number);
+    stmt->setString(7, creation_time);
+    stmt->setString(8, location);
+    stmt->executeQuery();
+
+    return get_last_insert_id(conn);
 }
 
-int remove_component(int session_id, const char* schema, int component_id) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+int remove_component(int conn_id, int component_id) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-    mysqlx::Table component_table = schema_.getTable("component", true);
-    component_table.remove().where("id = :id").bind("id", component_id).execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "DELETE FROM component WHERE id = ?"
+            ));
+    stmt->setInt(1, component_id);
+    stmt->execute();
     return 0;
 }
 
-int insert_log(int session_id, const char* schema, const char* userid, const char* remote_ip, const char* type) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
+int update_component(int conn_id, int id, const char* status, int parent) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
-    mysqlx::Schema schema_ = session->getSchema(schema);
-    mysqlx::Table part_table = schema_.getTable("logs", true);
-    string now = get_current_utc_timestamp();
-
-    auto result = part_table.insert("userid", "remote_ip", "type", "date")
-            .values(userid, remote_ip, type, now.c_str()).execute();
-    return (int) result.getAutoIncrementValue();
-}
-
-int update_component(int session_id, const char* schema, int id, const char* status, int parent) {
-    mysqlx::Session* session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-    mysqlx::Schema schema_ = session->getSchema(schema);
-    mysqlx::Table part_table = schema_.getTable("component", true);
-
-    string now = get_current_utc_timestamp();
-
-    auto rows = part_table.update()
-            .set("parent", parent)
-            .set("status", status)
-            .set("creation_time", now.c_str())
-            .where("id = :i")
-            .bind("i", id)
-            .execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "UPDATE component SET parent = ?, status = ? "
+            "WHERE id = ?"
+    ));
+    stmt->setInt(1, parent);
+    stmt->setString(2, status);
+    stmt->setInt(3, id);
+    stmt->execute();
 
     return 0;
 }
 
-int insert_test(int session_id, const char *schema, const char *description, const char *data, int component_id,
-                const char *type) {
-    mysqlx::Session *session;
-    try { session = sessions.at(session_id); } catch (out_of_range &e) { return -1; }
-    mysqlx::Schema schema_ = session->getSchema(schema);
-    mysqlx::Table test_table = schema_.getTable("tests", true);
+int insert_log(int conn_id, const char* userid, const char* remote_ip, const char* type) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     string now = get_current_utc_timestamp();
-    test_table.insert("date", "description", "data", "part_id", "type")
-            .values(now, description, data, component_id, type).execute();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "INSERT INTO logs (userid, remote_ip, type, date) "
+            "VALUES (?,?,?,?)"
+    ));
+    stmt->setString(1, userid);
+    stmt->setString(2, remote_ip);
+    stmt->setString(3, type);
+    stmt->setString(4, now);
+    stmt->execute();
 
-    return 0;
+    return get_last_insert_id(conn);
+}
+
+int insert_test(int conn_id, const char *description, const char *data, int component_id, const char *type) {
+    sql::Connection* conn;
+    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+
+    string now = get_current_utc_timestamp();
+    unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
+            "INSERT INTO tests (date, description, data, part_id, type) "
+            "VALUES (?,?,?,?,?)"
+    ));
+    stmt->setString(1, now);
+    stmt->setString(2, description);
+    stmt->setString(3, data);
+    stmt->setInt(4, component_id);
+    stmt->setString(5, type);
+    stmt->execute();
+    return get_last_insert_id(conn);
 }

@@ -25,7 +25,7 @@ else ()
     target_include_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/include" "include/")
     target_link_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/lib64/vs14/")
 endif (Darwin)
-target_link_libraries(Database PUBLIC mysqlcppconn8 ${LIBSSL} )
+target_link_libraries(Database PUBLIC mysqlcppconn8 mysqlcppconn ${LIBSSL} )
 
 
 add_executable(test_Database src/test_Database.cpp)
