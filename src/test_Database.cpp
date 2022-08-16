@@ -213,10 +213,6 @@ int test_insert_log(int conn_id) {
 }
 
 int test_insert_test(int conn_id) {
-    string userid = "test user";
-    string remote_ip = "1.2.3.4";
-    string type = "test log";
-
     insert_test(conn_id, "This is a test test", "dx=5,dy=12,dz=92,t=1h23m,etc,etc", 68, "test");
     return 0;
 }
