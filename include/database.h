@@ -24,8 +24,8 @@ extern "C" {
     DLLExport int __cdecl query_people(int conn_id, int* n_people, char* username , char* name,
                                        char* full_name, char* email, char* institute, char* timezone);
     DLLExport int __cdecl check_login(int conn_id, const char* username, const char* password);
-    DLLExport int __cdecl query_components(int conn_id, const char* part, int* n_component, int* id, char* status,
-                                           char* description, char* serial_number, char* location);
+    DLLExport int __cdecl query_components(int conn_id, const char* part, int version, int* n_component, int* id, char* status,
+                                           char* description, char* serial_number, char* location, int* parent);
     DLLExport int __cdecl insert_component(int conn_id, const char* part, int version, const char* status,
                                            const char* description, const char* who, const char* serial_number,
                                            const char* location);

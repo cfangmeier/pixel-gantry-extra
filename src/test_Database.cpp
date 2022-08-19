@@ -32,11 +32,12 @@ int test_update_component(int conn_id) {
     str_table_t description;
     str_table_t serial_number;
     int_table_t id;
+    int_table_t parent;
     int n_component;
 
     update_component(conn_id, comp_id, "updated", 2);
-    query_components(conn_id, "test_part", &n_component, (int *) id,
-                     (char *) status, (char *) description, (char *) serial_number, (char *) location);
+    query_components(conn_id, "test_part", 1, &n_component, id, (char *) status, (char *) description,
+                     (char *) serial_number, (char *) location, parent);
     remove_component(conn_id, comp_id);
 
     bool success = false;
@@ -104,16 +105,17 @@ int test_check_login(int conn_id, const char* username, const char* password) {
     return password_check_result;
 }
 
-int test_query_components(int conn_id, const char* part) {
+int test_query_components(int conn_id, const char* part, int version) {
     str_table_t status;
     str_table_t location;
     str_table_t description;
     str_table_t serial_number;
     int_table_t id;
+    int_table_t parent;
     int n_component;
 
-    query_components(conn_id, part, &n_component, (int*) id ,
-                    (char*) status, (char*) description, (char*) serial_number,(char*) location);
+    query_components(conn_id, part, version, &n_component, id,
+                    (char*) status, (char*) description, (char*) serial_number,(char*) location, parent);
     if (VERBOSE) {
         for(int i = 0; i < n_component; i++) {
             cout << id[i]
@@ -141,15 +143,16 @@ int test_insert_component(int conn_id) {
     str_table_t description;
     str_table_t serial_number;
     int_table_t id;
+    int_table_t parent;
     int n_component_pre_insert, n_component_post_insert;
 
-    query_components(conn_id, test_part, &n_component_pre_insert, (int*) id ,
-                     (char*) status, (char*) description, (char*) serial_number,(char*) location);
+    query_components(conn_id, test_part, test_version, &n_component_pre_insert,  id,
+                     (char*) status, (char*) description, (char*) serial_number,(char*) location, parent);
 
     insert_component(conn_id, test_part, test_version, test_status, test_description, test_who, test_serial_number, test_location);
 
-    query_components(conn_id, test_part, &n_component_post_insert, (int*) id ,
-                     (char*) status, (char*) description, (char*) serial_number,(char*) location);
+    query_components(conn_id, test_part, test_version, &n_component_post_insert,  id,
+                     (char*) status, (char*) description, (char*) serial_number,(char*) location, parent);
 
     if (VERBOSE) {
         cout << endl;
@@ -174,10 +177,11 @@ int test_remove_component(int conn_id) {
     str_table_t description;
     str_table_t serial_number;
     int_table_t id;
+    int_table_t parent;
     int n_component_pre_remove, n_component_post_remove;
 
-    query_components(conn_id, test_part, &n_component_pre_remove, (int*) id ,
-                     (char*) status, (char*) description, (char*) serial_number,(char*) location);
+    query_components(conn_id, test_part, test_version, &n_component_pre_remove, id,
+                     (char*) status, (char*) description, (char*) serial_number,(char*) location, parent);
 
     int component_id;
     if (n_component_pre_remove == 0) {
@@ -191,8 +195,8 @@ int test_remove_component(int conn_id) {
     }
     remove_component(conn_id, component_id);
 
-    query_components(conn_id, test_part, &n_component_post_remove, (int*) id ,
-                     (char*) status, (char*) description, (char*) serial_number,(char*) location);
+    query_components(conn_id, test_part, test_version, &n_component_post_remove,  id,
+                     (char*) status, (char*) description, (char*) serial_number,(char*) location, parent);
 
     if (VERBOSE) {
         cout << endl;
@@ -217,6 +221,11 @@ int test_insert_test(int conn_id) {
     return 0;
 }
 
+int test_transaction(int conn_id) {
+    start_transaction(conn_id);
+    return 0;
+}
+
 int main(int argc, const char** argv) {
     VERBOSE = false;
     std::cout << "Program Started" << std::endl;
@@ -236,16 +245,17 @@ int main(int argc, const char** argv) {
     int conn_id = connect(username, password, host, schema, port_);
     if (conn_id < 0) return 0;
 
-    TEST(test_check_login, conn_id, "amironov", "blueberries");
-    TEST(test_query_components, conn_id, "rd53a_chip");
-    TEST(test_insert_component, conn_id);
-    TEST(test_remove_component, conn_id);
-    TEST(test_update_component, conn_id);
-    TEST(test_insert_log, conn_id);
-
-    TEST(test_query_parts, conn_id);
-    TEST(test_query_people, conn_id);
-    TEST(test_insert_test, conn_id);
+//    TEST(test_check_login, conn_id, "amironov", "blueberries");
+//    TEST(test_query_components, conn_id, "rd53a_chip", 1);
+//    TEST(test_insert_component, conn_id);
+//    TEST(test_remove_component, conn_id);
+//    TEST(test_update_component, conn_id);
+//    TEST(test_insert_log, conn_id);
+//
+//    TEST(test_query_parts, conn_id);
+//    TEST(test_query_people, conn_id);
+//    TEST(test_insert_test, conn_id);
+    TEST(test_transaction, conn_id);
 
     disconnect(conn_id);
     return 0;

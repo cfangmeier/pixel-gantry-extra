@@ -68,16 +68,16 @@ int connect(const char* username, const char* password, const char* host, const 
 
 int disconnect(int conn_id) {
     sql::Connection* conn;
-    try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
+    try { conn = connections.extract(conn_id).mapped(); } catch (out_of_range &e) { return -1; }
     conn->close();
-    connections.erase(conn_id);
+    delete conn;
     return 0;
 }
 
 int start_transaction(int conn_id) {
     sql::Connection* conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
-    conn->setSavepoint();
+    conn->setAutoCommit(false);
     return 0;
 }
 
@@ -85,6 +85,7 @@ int rollback_transaction(int conn_id) {
     sql::Connection* conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
     conn->rollback();
+    conn->setAutoCommit(true);
     return 0;
 }
 
@@ -92,6 +93,7 @@ int finish_transaction(int conn_id) {
     sql::Connection* conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
     conn->commit();
+    conn->setAutoCommit(true);
     return 0;
 }
 
@@ -188,14 +190,18 @@ int check_login(int conn_id, const char* username, const char* password) {
     return db_hashed == input_hashed ? 0 : 1;
 }
 
-int query_components(int conn_id, const char* part, int* n_component, int* id, char* status, char* description, char* serial_number,  char* location) {
+int query_components(int conn_id, const char* part, int version, int* n_component, int* id, char* status,
+                     char* description, char* serial_number,  char* location, int* parent) {
     sql::Connection* conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
-            "SELECT id, status, description, serial_number, location FROM component WHERE part = ?"
+            "SELECT id, status, description, serial_number, location, parent FROM component "
+            "WHERE part = ? AND version = ? "
+            "ORDER BY serial_number"
             ));
     stmt->setString(1, part);
+    stmt->setInt(2, version);
     unique_ptr<sql::ResultSet> components(stmt->executeQuery());
 
     int idx = 0;
@@ -207,12 +213,14 @@ int query_components(int conn_id, const char* part, int* n_component, int* id, c
         string row_description = with_default(components.get(), 3, "");
         string row_serial_number = with_default(components.get(), 4, "");
         string row_location = with_default(components.get(), 5, "");
+        int row_parent = with_default(components.get(), 6, -1);
 
         *(id + idx) = row_id;
         cp_to_buffer(status, row_status);
         cp_to_buffer(description, row_description);
         cp_to_buffer(serial_number, row_serial_number);
         cp_to_buffer(location, row_location);
+        *(parent + idx) = row_parent;
 
         idx++;
     }
@@ -239,7 +247,7 @@ int insert_component(int conn_id, const char* part, int version, const char* sta
     stmt->setString(6, serial_number);
     stmt->setString(7, creation_time);
     stmt->setString(8, location);
-    stmt->executeQuery();
+    stmt->execute();
 
     return get_last_insert_id(conn);
 }
