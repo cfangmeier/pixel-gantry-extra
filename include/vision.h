@@ -13,6 +13,19 @@ DLLExport int __cdecl calc_focus(
         char *log_filedir);
 
 
+DLLExport int __cdecl convert_to_grayscale(
+        char *src_imgPtr,
+        int src_imgLineWidth,
+        int src_imgWidth,
+        int src_imgHeight,
+        const char* src_type,
+        char *dst_imgPtr,
+        int dst_imgLineWidth,
+        int dst_imgWidth,
+        int dst_imgHeight,
+        char *log_filedir);
+
+
 DLLExport int __cdecl find_patches(
         char *imgPtr,
         int imgLineWidth,

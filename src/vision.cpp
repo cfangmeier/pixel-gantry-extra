@@ -23,7 +23,7 @@ using namespace std;
 
 __declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
                                              int imgWidth, int imgHeight,
-                                             float* focus){
+                                             float* focus, const char* log_filedir){
     cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
 
     cv::Mat lap;
@@ -32,6 +32,55 @@ __declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
     cv::Scalar mu, sigma;
     cv::meanStdDev(lap, mu, sigma);
     *focus = (float)(sigma.val[0] * sigma.val[0]);
+    return 0;
+}
+
+__declspec(dllexport) int __cdecl convert_to_grayscale(
+        char *src_imgPtr,
+        int src_imgLineWidth,
+        int src_imgWidth,
+        int src_imgHeight,
+        const char* src_type,
+        char *dst_imgPtr,
+        int dst_imgLineWidth,
+        int dst_imgWidth,
+        int dst_imgHeight,
+        const char *log_filedir){
+    set_log_filedir(log_filedir);
+    set_debug(true);
+    int src_color_code = color_code(src_type);
+    if (src_color_code < 0) return -1;
+
+    cv::Mat dst_img(dst_imgHeight, dst_imgWidth, CV_8UC1, (void*)dst_imgPtr, dst_imgLineWidth);
+    cv::Mat src_img(src_imgHeight, src_imgWidth, src_color_code, (void*)src_imgPtr, src_imgLineWidth);
+//    show(src_img);
+//    show(dst_img);
+
+    if (strcmp(src_type, "Grayscale (U8)") == 0) {
+        log("1");
+        src_img.copyTo(dst_img);
+    } else if(strcmp(src_type, "Grayscale (I16)") == 0) {
+        log("2");
+        cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 128);
+    } else if(strcmp(src_type, "Grayscale (U16)") == 0) {
+        log("3");
+        cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 0);
+    } else if(strcmp(src_type, "Grayscale (SGL)") == 0) {
+        log("4");
+        cv::convertScaleAbs(src_img, dst_img, 256);
+    } else if(strcmp(src_type, "Complex (CSG)") == 0) {
+        log("5");
+        return -1;
+    } else if(strcmp(src_type, "RGB (U32)") == 0) {
+        log("6");
+        cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
+    } else if(strcmp(src_type, "RGB (U64)") == 0) {
+        log("7");
+        cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
+    } else if(strcmp(src_type, "HSL (U32)") == 0) {
+        log("8");
+        return -1;
+    }
     return 0;
 }
 

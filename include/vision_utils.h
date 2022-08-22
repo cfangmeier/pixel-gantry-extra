@@ -15,3 +15,5 @@ void set_log_filedir(const std::string& new_log_filedir);
 
 void log(const std::string &data);
 void log(std::stringstream &data);
+
+int color_code(const char* lv_color_code);

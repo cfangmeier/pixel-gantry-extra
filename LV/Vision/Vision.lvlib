@@ -19,4 +19,5 @@
 	<Item Name="find_patches parameters.ctl" Type="VI" URL="../find_patches parameters.ctl"/>
 	<Item Name="phys_to_img_coords.vi" Type="VI" URL="../phys_to_img_coords.vi"/>
 	<Item Name="find_patches.vi" Type="VI" URL="../find_patches.vi"/>
+	<Item Name="convert_to_grayscale.vi" Type="VI" URL="../convert_to_grayscale.vi"/>
 </Library>
