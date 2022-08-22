@@ -10,7 +10,6 @@
 	<Item Name="check_login.vi" Type="VI" URL="../check_login.vi"/>
 	<Item Name="connect.vi" Type="VI" URL="../connect.vi"/>
 	<Item Name="Convert chars to strings.vi" Type="VI" URL="../Convert chars to strings.vi"/>
-	<Item Name="Database DLL Path.vi" Type="VI" URL="../Database DLL Path.vi"/>
 	<Item Name="DB Component.ctl" Type="VI" URL="../DB Component.ctl"/>
 	<Item Name="DB Float Array.vi" Type="VI" URL="../DB Float Array.vi"/>
 	<Item Name="DB Int Array.vi" Type="VI" URL="../DB Int Array.vi"/>
