@@ -9,8 +9,7 @@ DLLExport int __cdecl calc_focus(
         int imgLineWidth,
         int imgWidth,
         int imgHeight,
-        float *focus,
-        char *log_filedir);
+        float *focus);
 
 
 DLLExport int __cdecl convert_to_grayscale(
@@ -22,8 +21,7 @@ DLLExport int __cdecl convert_to_grayscale(
         char *dst_imgPtr,
         int dst_imgLineWidth,
         int dst_imgWidth,
-        int dst_imgHeight,
-        char *log_filedir);
+        int dst_imgHeight);
 
 
 DLLExport int __cdecl find_patches(
@@ -41,7 +39,6 @@ DLLExport int __cdecl find_patches(
         float aspectRatioMax,
         int colorGroups,
         bool debug,
-        const char *logFileDir,
         int *numPatches,
         float *patchXCoordinates,
         float *patchYCoordinates,
@@ -62,7 +59,6 @@ DLLExport int __cdecl find_circles(
         int houghGradientParam1,
         int houghGradientParam2,
         bool debug,
-        const char *logFileDir,
         int *numCircles,
         float *circleXCenters,
         float *circleYCenters,
@@ -82,7 +78,6 @@ DLLExport int __cdecl find_rects(
         float tolerance,
         bool allowRotation,
         bool debug,
-        const char *logFileDir,
         int *Nrects,
         float *rectXCenters,
         float *rectYCenters,
@@ -97,6 +92,59 @@ DLLExport int __cdecl find_rects(
         float *rectWidths,
         float *rectHeights,
         float *rectAngles);
+
+DLLExport int __cdecl flip(
+        char *imgPtr,
+        int imgLineWidth,
+        int imgWidth,
+        int imgHeight,
+        int flipType);
+
+DLLExport int __cdecl crop(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int left,
+        int right,
+        int top,
+        int bottom);
+
+
+DLLExport int __cdecl fill(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        unsigned char value);
+
+DLLExport int __cdecl resample(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int new_width,
+        int new_height);
+
+DLLExport int __cdecl superimpose(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int dstTop,
+        int dstLeft);
 
 };  // end extern "C"
 #endif //CLIONLVTEST_VISION_H

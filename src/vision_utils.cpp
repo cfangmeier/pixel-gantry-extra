@@ -1,4 +1,4 @@
-#include "../include/vision_utils.h"
+#include "vision_utils.h"
 #include <sstream>
 #include <fstream>
 #include "opencv2/opencv.hpp"
@@ -19,20 +19,16 @@ __declspec(dllexport) void __cdecl show(cv::Mat img) {
 }
 
 
-std::string log_filedir;
-void set_log_filedir(const std::string& new_log_filedir) {
-    log_filedir = new_log_filedir;
+std::string log_file_path;
+void set_log_file_path(const char* new_log_file_path) {
+    log_file_path = new_log_file_path;
 }
 
 
 void log(const std::string& data) {
-    if (!log_filedir.empty()) {
+    if (!log_file_path.empty()) {
         std::ofstream myfile;
-        std::string filename;
-        filename.append(log_filedir);
-        filename.append("\\");
-        filename.append(GVISION_LOG_FILENAME);
-        myfile.open(filename, std::ios::out | std::ios::app);
+        myfile.open(log_file_path, std::ios::out | std::ios::app);
 
         myfile << data << std::endl;
         myfile.close();

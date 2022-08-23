@@ -23,7 +23,7 @@ using namespace std;
 
 __declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
                                              int imgWidth, int imgHeight,
-                                             float* focus, const char* log_filedir){
+                                             float* focus){
     cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
 
     cv::Mat lap;
@@ -44,41 +44,28 @@ __declspec(dllexport) int __cdecl convert_to_grayscale(
         char *dst_imgPtr,
         int dst_imgLineWidth,
         int dst_imgWidth,
-        int dst_imgHeight,
-        const char *log_filedir){
-    set_log_filedir(log_filedir);
-    set_debug(true);
+        int dst_imgHeight){
     int src_color_code = color_code(src_type);
     if (src_color_code < 0) return -1;
 
     cv::Mat dst_img(dst_imgHeight, dst_imgWidth, CV_8UC1, (void*)dst_imgPtr, dst_imgLineWidth);
     cv::Mat src_img(src_imgHeight, src_imgWidth, src_color_code, (void*)src_imgPtr, src_imgLineWidth);
-//    show(src_img);
-//    show(dst_img);
 
     if (strcmp(src_type, "Grayscale (U8)") == 0) {
-        log("1");
         src_img.copyTo(dst_img);
     } else if(strcmp(src_type, "Grayscale (I16)") == 0) {
-        log("2");
         cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 128);
     } else if(strcmp(src_type, "Grayscale (U16)") == 0) {
-        log("3");
         cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 0);
     } else if(strcmp(src_type, "Grayscale (SGL)") == 0) {
-        log("4");
         cv::convertScaleAbs(src_img, dst_img, 256);
     } else if(strcmp(src_type, "Complex (CSG)") == 0) {
-        log("5");
         return -1;
     } else if(strcmp(src_type, "RGB (U32)") == 0) {
-        log("6");
         cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
     } else if(strcmp(src_type, "RGB (U64)") == 0) {
-        log("7");
         cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
     } else if(strcmp(src_type, "HSL (U32)") == 0) {
-        log("8");
         return -1;
     }
     return 0;
@@ -112,14 +99,15 @@ void do_kmeans(cv::Mat &img, int k){
     cv::Mat colVecD, bestLabels, centers, clustered;
     kmeansIn.convertTo(colVecD, CV_32FC3, 1.0 / 255.0);
 
-    double compactness = kmeans(colVecD, k, bestLabels, tc, 1, flags, centers);
+    kmeans(colVecD, k, bestLabels, tc, 1, flags, centers);
 
     bestLabels = bestLabels.reshape(1, img.rows);
     bestLabels.convertTo(bestLabels, CV_8U);
     img = bestLabels;
 
     // TODO: Allow for selecting *which* label to use, ie brightest, 2nd brightest, etc
-    float maxVal = -1; int foreground = -1;
+    float maxVal = -1;
+    int foreground = -1;
     for (int i = 0; i < centers.rows; i++){
         float center = centers.at<float>(i);
         if (center > maxVal){
@@ -127,7 +115,7 @@ void do_kmeans(cv::Mat &img, int k){
             foreground = i;
         }
     }
-    set_foreground(img, foreground, (char)255, (char)0);
+    set_foreground(img, (char)foreground, (char)255, (char)0);
 }
 
 void do_dilate(cv::Mat &img, int size){
@@ -137,7 +125,10 @@ void do_dilate(cv::Mat &img, int size){
 }
 
 struct ContourData{
-    ContourData(){}
+    ContourData(){
+        area = 0;
+        ar = 0;
+    }
     ContourData(float area, float ar){
         this->area = area;
         this->ar = ar;
@@ -155,16 +146,16 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
 
     vector<contour_t> passContours;
     stringstream ss;
-    for (unsigned int i = 0; i < contours.size(); i++){
-        float area = (float)contourArea(contours[i]);
-        cv::RotatedRect rr = minAreaRect(contours[i]);
+    for (auto & contour : contours){
+        float area = (float)contourArea(contour);
+        cv::RotatedRect rr = minAreaRect(contour);
         float ar = float(rr.size.width) / rr.size.height;
         if(ar<1) ar = 1.0f/ar;
         ss << "area: " << area << ", ar: " << ar << endl << endl;
         log(ss);
         if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
             contour_t c;
-            c.first = contours[i];
+            c.first = contour;
             c.second = ContourData(area,ar);
             passContours.push_back(c);
         }
@@ -188,14 +179,12 @@ int __cdecl find_patches(
         float aspectRatioMax,
         int colorGroups,
         bool debug,
-        const char* logFileDir,
         int* numPatches,
         float* patchXCoordinates,
         float* patchYCoordinates,
         float* patchAspectRatios,
         float* patchSizes)
 {
-    set_log_filedir(logFileDir);
     set_debug(debug);
 
     std::stringstream ss;
@@ -211,7 +200,7 @@ int __cdecl find_patches(
     do_dilate(img, dilateSize);
     show(img);
 
-    float pixelSize = (fieldOfViewX * fieldOfViewY) / (cols * rows);
+    float pixelSize = (fieldOfViewX * fieldOfViewY) / (float)(cols * rows);
     float sizeMinPx = sizeMin / pixelSize;
     float sizeMaxPx = sizeMax / pixelSize;
     // Note that Aspect Ratio is not corrected to physical size because this code assumes square pixels
@@ -259,13 +248,11 @@ __declspec(dllexport) int __cdecl find_circles(
         int houghGradientParam1,
         int houghGradientParam2,
         bool debug,
-        const char* logFileDir,
         int* numCircles,
         float* circleXCenters,
         float* circleYCenters,
         float* circleRadii)
 {
-    set_log_filedir(logFileDir);
     set_debug(debug);
 
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
@@ -324,7 +311,6 @@ __declspec(dllexport) int __cdecl find_rects(
         float tolerance,
         bool allowRotation,
         bool debug,
-        const char* logFileDir,
         int* Nrects,
         float* rectXCenters,
         float* rectYCenters,
@@ -340,7 +326,6 @@ __declspec(dllexport) int __cdecl find_rects(
         float* rectHeights,
         float* rectAngles)
 {
-    set_log_filedir(logFileDir);
     set_debug(debug);
     log("Running find_rects");
     std::stringstream ss;
@@ -529,3 +514,90 @@ __declspec(dllexport) int __cdecl find_rects(
     log("Finished find_rects");
     return 0;
 }
+
+DLLExport int __cdecl flip(
+        char *imgPtr,
+        int imgLineWidth,
+        int imgWidth,
+        int imgHeight,
+        int mirrorType) {
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::flip(imgIn, imgIn, mirrorType);
+    return 0;
+}
+
+DLLExport int __cdecl crop(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int left,
+        int right,
+        int top,
+        int bottom) {
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+    imgIn(cv::Range(top, bottom), cv::Range(left, right)).copyTo(imgOut);
+    return 0;
+}
+DLLExport int __cdecl fill(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        unsigned char value) {
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
+    imgIn.setTo(value);
+    return 0;
+}
+
+DLLExport int __cdecl resample(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int new_width,
+        int new_height) {
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+
+    cv::resize(imgIn, imgOut, cv::Size(new_width, new_height), cv::INTER_LINEAR);
+    return 0;
+}
+
+DLLExport int __cdecl superimpose(
+        char *srcPtr,
+        int srcLineWidth,
+        int srcWidth,
+        int srcHeight,
+        char *dstPtr,
+        int dstLineWidth,
+        int dstWidth,
+        int dstHeight,
+        int dstTop,
+        int dstLeft) {
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+
+    dstTop = clamp(dstTop, 0, dstHeight-1);
+    dstLeft = clamp(dstLeft, 0, dstWidth-1);
+    int dstRight = clamp(dstLeft+srcWidth, 0, dstWidth-1);
+    int dstBottom = clamp(dstTop+srcHeight, 0, dstHeight-1);
+    for (int i=dstTop; i<dstBottom; i++) {
+        int src_row = i - dstTop;
+        for (int j=dstLeft; j<dstRight; j++) {
+            int src_col = j - dstLeft;
+            imgOut.at<char>(i, j) = imgIn.at<char>(src_row, src_col);
+        }
+    }
+    return 0;
+}
+
