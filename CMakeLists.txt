@@ -14,17 +14,13 @@ else()
     set(LIBSSL "libssl")
 endif (Darwin)
 
+
 add_library(Database SHARED src/database.cpp src/sha512.cpp)
 # The .lib files should be found automatically if they are installed in the standard place by the
 # MySQL Connector C++ 64-bit msi installer, typically this is C:\Program Files\MySQL\Connector C++ 8.0\lib64\vs14
 # In addition, to run during development, the dlls should be copied to somewhere on your PATH or the build directory
-if (Darwin)
-    target_include_directories(Database PUBLIC "/Users/ivan_the_cheah/Desktop/research/include")
-    target_link_directories(Database PUBLIC "/Users/ivan_the_cheah/Desktop/research/lib64")
-else ()
-    target_include_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/include" "include/")
-    target_link_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/lib64/vs14/")
-endif (Darwin)
+target_include_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/include" "include/")
+target_link_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/lib64/vs14/")
 target_link_libraries(Database PUBLIC mysqlcppconn8 mysqlcppconn ${LIBSSL} )
 
 
