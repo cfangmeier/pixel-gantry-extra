@@ -21,9 +21,11 @@ using namespace std;
 
 #define MAX_OBJECTS 20
 
-__declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
-                                             int imgWidth, int imgHeight,
-                                             float* focus){
+__declspec(dllexport) int __cdecl calc_focus(
+        char* imgPtr,
+        int imgLineWidth,
+        int imgWidth, int imgHeight,
+        float* focus){
     cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
 
     cv::Mat lap;
@@ -99,6 +101,7 @@ void do_kmeans(cv::Mat &img, int k){
     cv::Mat colVecD, bestLabels, centers, clustered;
     kmeansIn.convertTo(colVecD, CV_32FC3, 1.0 / 255.0);
 
+    k = k > 0 ? k : 1;
     kmeans(colVecD, k, bestLabels, tc, 1, flags, centers);
 
     bestLabels = bestLabels.reshape(1, img.rows);
@@ -119,6 +122,7 @@ void do_kmeans(cv::Mat &img, int k){
 }
 
 void do_dilate(cv::Mat &img, int size){
+    size = size > 0 ? size : 1;
     cv::Size s(size, size);
     cv::Mat element = getStructuringElement(cv::MORPH_ELLIPSE, s);
     dilate(img, img, element);
@@ -145,14 +149,11 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
     findContours(img.clone(), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     vector<contour_t> passContours;
-    stringstream ss;
     for (auto & contour : contours){
         float area = (float)contourArea(contour);
         cv::RotatedRect rr = minAreaRect(contour);
         float ar = float(rr.size.width) / rr.size.height;
         if(ar<1) ar = 1.0f/ar;
-        ss << "area: " << area << ", ar: " << ar << endl << endl;
-        log(ss);
         if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
             contour_t c;
             c.first = contour;
@@ -178,16 +179,14 @@ int __cdecl find_patches(
         float aspectRatioMin,
         float aspectRatioMax,
         int colorGroups,
-        bool debug,
         int* numPatches,
         float* patchXCoordinates,
         float* patchYCoordinates,
         float* patchAspectRatios,
         float* patchSizes)
 {
-    set_debug(debug);
+    log("Running find_patches");
 
-    std::stringstream ss;
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     int rows = (int)(img.rows / shrinkFactor);
@@ -195,6 +194,7 @@ int __cdecl find_patches(
     cv::Size s(cols, rows);
     resize(img, img, s);
 
+    show(img);
     do_kmeans(img, colorGroups);
     show(img);
     do_dilate(img, dilateSize);
@@ -211,8 +211,8 @@ int __cdecl find_patches(
     }
     *numPatches = contours.size();
 
+    std::stringstream ss;
     ss << "Fiducials Found: " << contours.size() << endl;
-    log(ss.str());
 
     for (unsigned int i = 0; i < contours.size(); i++){
         vector<cv::Point> fidContour = contours[i].first;
@@ -229,8 +229,9 @@ int __cdecl find_patches(
         ss << i << ":" << endl;
         ss << "  x:" << x << ", y:" << y << endl;
         ss << "  area: " << pixelSize*c.area << ", ar: " << c.ar << endl << endl;
-        log(ss);
     }
+    log(ss);
+    log("Done");
     return 0;
 }
 
@@ -247,16 +248,16 @@ __declspec(dllexport) int __cdecl find_circles(
         float maxRadius,  // mm
         int houghGradientParam1,
         int houghGradientParam2,
-        bool debug,
         int* numCircles,
         float* circleXCenters,
         float* circleYCenters,
         float* circleRadii)
 {
-    set_debug(debug);
+    log("Running find_circles");
 
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
+    shrinkFactor = shrinkFactor > 1 ? shrinkFactor : 1;
     int rows = (int)(img.rows / shrinkFactor);
     int cols = (int)(img.cols / shrinkFactor);
     cv::Size s(cols, rows);
@@ -264,8 +265,8 @@ __declspec(dllexport) int __cdecl find_circles(
 
     // This code assumes square pixels
     float pixelWidth = fieldOfViewX / cols;
-    float minRadiusPx = minRadius / pixelWidth;
-    float maxRadiusPx = maxRadius / pixelWidth;
+    float minRadiusPx = abs(minRadius / pixelWidth);
+    float maxRadiusPx = abs(maxRadius / pixelWidth);
 
     cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
     vector<cv::Vec3f> circles;
@@ -294,6 +295,7 @@ __declspec(dllexport) int __cdecl find_circles(
         *(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
         *(circleRadii + i) = circles[i][2] * pixelWidth;
     }
+    log("Done");
     return 0;
 }
 
@@ -310,7 +312,6 @@ __declspec(dllexport) int __cdecl find_rects(
         float nominalHeight,
         float tolerance,
         bool allowRotation,
-        bool debug,
         int* Nrects,
         float* rectXCenters,
         float* rectYCenters,
@@ -326,7 +327,6 @@ __declspec(dllexport) int __cdecl find_rects(
         float* rectHeights,
         float* rectAngles)
 {
-    set_debug(debug);
     log("Running find_rects");
     std::stringstream ss;
 
@@ -511,7 +511,7 @@ __declspec(dllexport) int __cdecl find_rects(
     *Nrects = counter;
 
     show(img);
-    log("Finished find_rects");
+    log("Done");
     return 0;
 }
 

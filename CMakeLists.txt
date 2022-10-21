@@ -7,12 +7,18 @@ project(GantryExt
 
 set(CMAKE_CXX_STANDARD 17)
 
-if (Darwin)
-    set(CMAKE_CXX_FLAGS "-fdeclspec")
-    set(LIBSSL "ssl")
-else()
-    set(LIBSSL "libssl")
-endif (Darwin)
+#if (Darwin)
+#    set(CMAKE_CXX_FLAGS "-fdeclspec")
+#    set(LIBSSL "ssl")
+#else()
+#    set(LIBSSL "libssl")
+#endif (Darwin)
+
+set(OPENCV_INC "C:/opencv/build/include")
+set(OPENCV_LIB "C:/opencv/build/x64/vc14/lib")
+
+set(LV_INC "C:/Program Files/National Instruments/LabVIEW 2022/cintools")
+set(LV_LIB "C:/Program Files/National Instruments/LabVIEW 2022/cintools/")
 
 
 add_library(Database SHARED src/database.cpp src/sha512.cpp)
@@ -21,7 +27,7 @@ add_library(Database SHARED src/database.cpp src/sha512.cpp)
 # In addition, to run during development, the dlls should be copied to somewhere on your PATH or the build directory
 target_include_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/include" "include/")
 target_link_directories(Database PUBLIC "C:/Program Files/MySQL/Connector C++ 8.0/lib64/vs14/")
-target_link_libraries(Database PUBLIC mysqlcppconn8 mysqlcppconn ${LIBSSL} )
+target_link_libraries(Database PUBLIC mysqlcppconn8 mysqlcppconn libssl )
 
 
 add_executable(test_Database src/test_Database.cpp)
@@ -30,9 +36,9 @@ target_link_libraries(test_Database PUBLIC Database)
 
 add_library(Vision SHARED src/vision.cpp include/vision.h src/vision_utils.cpp include/vision_utils.h)
 # To get these libs, download the OpenCV 4.5.5 installer for windows and unpack it to C:
-target_include_directories(Vision PUBLIC "C:/opencv/build/include" "include/")
-target_link_directories(Vision PUBLIC "C:/opencv/build/x64/vc14/lib")
-target_link_libraries(Vision PUBLIC opencv_world455)
+target_include_directories(Vision PUBLIC  "include/" ${LV_INC} ${OPENCV_INC})
+target_link_directories(Vision PUBLIC ${OPENCV_LIB} ${LB_LIB})
+target_link_libraries(Vision PUBLIC opencv_world455 labview)
 
 add_executable(test_Vision src/test_Vision.cpp)
 target_link_libraries(test_Vision PUBLIC Vision)

@@ -5,8 +5,8 @@
 
 
 bool debug = false;
-__declspec(dllexport) void __cdecl set_debug(bool new_debug) {
-    debug = new_debug;
+__declspec(dllexport) void __cdecl set_debug(int new_debug) {
+    debug = new_debug != 0;
 }
 
 __declspec(dllexport) void __cdecl show(cv::Mat img) {
@@ -18,25 +18,20 @@ __declspec(dllexport) void __cdecl show(cv::Mat img) {
     }
 }
 
-
-std::string log_file_path;
-void set_log_file_path(const char* new_log_file_path) {
-    log_file_path = new_log_file_path;
-}
-
+std::stringstream log_ss;
 
 void log(const std::string& data) {
-    if (!log_file_path.empty()) {
-        std::ofstream myfile;
-        myfile.open(log_file_path, std::ios::out | std::ios::app);
-
-        myfile << data << std::endl;
-        myfile.close();
-    }
+    log_ss << data << std::endl;
 }
+
 void log(std::stringstream& data) {
     log(data.str());
     data.str("");
+}
+
+__declspec(dllexport) void __cdecl dump_log(LStrHandle lsh) {
+    LStrPrintf(lsh, (CStr) "%s", log_ss.str().c_str());
+    log_ss.str("");
 }
 
 int color_code(const char* lv_color_code) {

@@ -38,7 +38,6 @@ DLLExport int __cdecl find_patches(
         float aspectRatioMin,
         float aspectRatioMax,
         int colorGroups,
-        bool debug,
         int *numPatches,
         float *patchXCoordinates,
         float *patchYCoordinates,
@@ -58,7 +57,6 @@ DLLExport int __cdecl find_circles(
         float maxRadius,  // mm
         int houghGradientParam1,
         int houghGradientParam2,
-        bool debug,
         int *numCircles,
         float *circleXCenters,
         float *circleYCenters,
@@ -77,7 +75,6 @@ DLLExport int __cdecl find_rects(
         float nominalHeight,
         float tolerance,
         bool allowRotation,
-        bool debug,
         int *Nrects,
         float *rectXCenters,
         float *rectYCenters,
