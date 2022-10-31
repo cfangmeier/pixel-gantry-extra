@@ -31,6 +31,7 @@
 		<Item Name="image properties.vi" Type="VI" URL="../image properties.vi"/>
 		<Item Name="set_debug.vi" Type="VI" URL="../set_debug.vi"/>
 		<Item Name="dump_log.vi" Type="VI" URL="../dump_log.vi"/>
+		<Item Name="next_img_name.vi" Type="VI" URL="../next_img_name.vi"/>
 	</Item>
 	<Item Name="image acquisition" Type="Folder">
 		<Item Name="ueye" Type="Folder">
