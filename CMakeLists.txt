@@ -34,11 +34,12 @@ add_executable(test_Database src/test_Database.cpp)
 target_link_libraries(test_Database PUBLIC Database)
 
 
-add_library(Vision SHARED src/vision.cpp include/vision.h src/vision_utils.cpp include/vision_utils.h)
+add_library(Vision SHARED src/vision.cpp include/vision.h src/vision_utils.cpp include/vision_utils.h include/camera.h src/camera.cpp
+        include/escapi.h src/escapi.cpp)
 # To get these libs, download the OpenCV 4.5.5 installer for windows and unpack it to C:
 target_include_directories(Vision PUBLIC  "include/" ${LV_INC} ${OPENCV_INC})
 target_link_directories(Vision PUBLIC ${OPENCV_LIB} ${LB_LIB})
 target_link_libraries(Vision PUBLIC opencv_world455 labview)
 
-add_executable(test_Vision src/test_Vision.cpp)
+add_executable(test_Vision src/test_Vision.cpp include/escapi.h src/escapi.cpp)
 target_link_libraries(test_Vision PUBLIC Vision)

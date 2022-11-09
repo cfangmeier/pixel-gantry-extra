@@ -32,12 +32,19 @@
 		<Item Name="set_debug.vi" Type="VI" URL="../set_debug.vi"/>
 		<Item Name="dump_log.vi" Type="VI" URL="../dump_log.vi"/>
 		<Item Name="next_img_name.vi" Type="VI" URL="../next_img_name.vi"/>
+		<Item Name="CAM String Array.vi" Type="VI" URL="../../Database/CAM String Array.vi"/>
 	</Item>
 	<Item Name="image acquisition" Type="Folder">
 		<Item Name="ueye" Type="Folder">
 			<Item Name="ueye allocate image memory.vi" Type="VI" URL="../ueye allocate image memory.vi"/>
 			<Item Name="ueye get image size.vi" Type="VI" URL="../ueye get image size.vi"/>
 			<Item Name="ueye array to image.vi" Type="VI" URL="../ueye array to image.vi"/>
+		</Item>
+		<Item Name="escapi" Type="Folder">
+			<Item Name="escapi_list_cameras.vi" Type="VI" URL="../escapi_list_cameras.vi"/>
+			<Item Name="escapi_capture_image.vi" Type="VI" URL="../escapi_capture_image.vi"/>
+			<Item Name="escapi_close_camera.vi" Type="VI" URL="../escapi_close_camera.vi"/>
+			<Item Name="escapi_open_camera.vi" Type="VI" URL="../escapi_open_camera.vi"/>
 		</Item>
 		<Item Name="open camera.vi" Type="VI" URL="../open camera.vi"/>
 		<Item Name="grab image.vi" Type="VI" URL="../grab image.vi"/>
