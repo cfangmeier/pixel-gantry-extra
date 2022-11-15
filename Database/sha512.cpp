@@ -1,6 +1,6 @@
 #include <cstring>
 #include <fstream>
-#include "../include/sha512.h"
+#include "sha512.h"
  
 const unsigned long long SHA512::sha512_k[80] = //ULL = uint64
             {0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL,

@@ -5,7 +5,7 @@
 #include <map>
 #include <windows.h>
 #include "camera.h"
-#include "escapi.h"
+#include "escapi/escapi.h"
 #include "opencv2/opencv.hpp"
 
 bool escapi_initialized = false;
