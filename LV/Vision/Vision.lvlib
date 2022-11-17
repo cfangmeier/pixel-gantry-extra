@@ -40,11 +40,13 @@
 			<Item Name="ueye get image size.vi" Type="VI" URL="../ueye get image size.vi"/>
 			<Item Name="ueye array to image.vi" Type="VI" URL="../ueye array to image.vi"/>
 		</Item>
-		<Item Name="escapi" Type="Folder">
-			<Item Name="escapi_list_cameras.vi" Type="VI" URL="../escapi_list_cameras.vi"/>
-			<Item Name="escapi_capture_image.vi" Type="VI" URL="../escapi_capture_image.vi"/>
-			<Item Name="escapi_close_camera.vi" Type="VI" URL="../escapi_close_camera.vi"/>
-			<Item Name="escapi_open_camera.vi" Type="VI" URL="../escapi_open_camera.vi"/>
+		<Item Name="wmf" Type="Folder">
+			<Item Name="wmf_list_cameras.vi" Type="VI" URL="../wmf_list_cameras.vi"/>
+			<Item Name="wmf_capture_image.vi" Type="VI" URL="../wmf_capture_image.vi"/>
+			<Item Name="wmf_close_camera.vi" Type="VI" URL="../wmf_close_camera.vi"/>
+			<Item Name="wmf_open_camera.vi" Type="VI" URL="../wmf_open_camera.vi"/>
+			<Item Name="wmf_list_modes.vi" Type="VI" URL="../wmf_list_modes.vi"/>
+			<Item Name="wmf_set_property.vi" Type="VI" URL="../wmf_set_property.vi"/>
 		</Item>
 		<Item Name="open camera.vi" Type="VI" URL="../open camera.vi"/>
 		<Item Name="grab image.vi" Type="VI" URL="../grab image.vi"/>

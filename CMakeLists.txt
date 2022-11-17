@@ -25,18 +25,18 @@ set(WMF_LIB
         mfreadwrite.lib
         mfuuid.lib
         shlwapi.lib
-#        kernel32.lib
-#        user32.lib
-#        gdi32.lib
-#        winspool.lib
-#        comdlg32.lib
-#        advapi32.lib
-#        shell32.lib
-#        ole32.lib
-#        oleaut32.lib
-#        uuid.lib
-#        odbc32.lib
-#        odbccp32.lib
+        #        kernel32.lib
+        #        user32.lib
+        #        gdi32.lib
+        #        winspool.lib
+        #        comdlg32.lib
+        #        advapi32.lib
+        #        shell32.lib
+        #        ole32.lib
+        #        oleaut32.lib
+        #        uuid.lib
+        #        odbc32.lib
+        #        odbccp32.lib
         )
 
 set(MYSQL_INC "C:/Program Files/MySQL/Connector C++ 8.0/include")
@@ -49,7 +49,7 @@ add_library(Database SHARED Database/database.cpp Database/sha512.cpp)
 # In addition, to run during development, the dlls should be copied to somewhere on your PATH or the build directory
 target_include_directories(Database PUBLIC ${MYSQL_INC} "include/")
 target_link_directories(Database PUBLIC ${MYSQL_LIBDIR})
-target_link_libraries(Database PUBLIC ${MYSQL_LIB} )
+target_link_libraries(Database PUBLIC ${MYSQL_LIB})
 
 
 add_executable(test_Database Database/test_Database.cpp)
@@ -57,7 +57,7 @@ target_link_libraries(test_Database PUBLIC Database)
 
 
 add_library(Vision SHARED Vision/vision.cpp Vision/vision.h Vision/vision_utils.cpp Vision/vision_utils.h)
-target_include_directories(Vision PUBLIC  "include/" ${LV_INC} ${OPENCV_INC})
+target_include_directories(Vision PUBLIC "include/" ${LV_INC} ${OPENCV_INC})
 target_link_directories(Vision PUBLIC ${OPENCV_LIBDIR} ${LB_LIBDIR})
 target_link_libraries(Vision PUBLIC ${OPENCV_LIB} ${LV_LIB})
 
@@ -65,24 +65,24 @@ add_executable(test_Vision Vision/test_Vision.cpp)
 target_link_libraries(test_Vision PUBLIC Vision)
 
 set(escapi
-        Camera/escapi/capture.cpp
-        Camera/escapi/capture.h
-        Camera/escapi/choosedeviceparam.h
-        Camera/escapi/conversion.cpp
-        Camera/escapi/conversion.h
-        Camera/escapi/interface.cpp
-        Camera/escapi/scopedrelease.h
-        Camera/escapi/videobufferlock.cpp
-        Camera/escapi/videobufferlock.h
-        Camera/escapi/mediamode.h
-        Camera/escapi/captureproperties.h)
+        Camera/capture.cpp
+        Camera/capture.h
+        Camera/choosedeviceparam.h
+        Camera/conversion.cpp
+        Camera/conversion.h
+        Camera/interface.cpp
+        Camera/scopedrelease.h
+        Camera/videobufferlock.cpp
+        Camera/videobufferlock.h
+        Camera/mediamode.h
+        Camera/captureproperties.h)
 
-#add_library(Camera SHARED Camera/camera.h Camera/camera.cpp Camera/escapi/escapi.h Camera/escapi/escapi.cpp)
-#target_include_directories(Camera PUBLIC  "include/" ${LV_INC} ${OPENCV_INC})
-#target_link_directories(Camera PUBLIC ${OPENCV_LIBDIR} ${LV_LIBDIR})
-#target_link_libraries(Camera PUBLIC ${OPENCV_LIB} ${LV_LIB} ${WMF_LIB})
+add_library(Camera SHARED ${escapi})
+target_include_directories(Camera PUBLIC  "include/" ${LV_INC} ${OPENCV_INC})
+target_link_directories(Camera PUBLIC ${OPENCV_LIBDIR} ${LV_LIBDIR})
+target_link_libraries(Camera PUBLIC ${OPENCV_LIB} ${LV_LIB} ${WMF_LIB})
 
 add_executable(test_Camera Camera/test_camera.cpp ${escapi})
-target_include_directories(test_Camera PUBLIC  "./" ${OPENCV_INC})
-target_link_directories(test_Camera PUBLIC ${OPENCV_LIBDIR})
-target_link_libraries(test_Camera PUBLIC ${WMF_LIB} ${OPENCV_LIB})
+target_include_directories(test_Camera PUBLIC "./" ${OPENCV_INC} ${LV_INC})
+target_link_directories(test_Camera PUBLIC ${OPENCV_LIBDIR} ${LV_LIBDIR})
+target_link_libraries(test_Camera PUBLIC ${WMF_LIB} ${OPENCV_LIB} ${LV_LIB})

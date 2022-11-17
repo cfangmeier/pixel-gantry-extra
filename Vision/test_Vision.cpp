@@ -74,23 +74,23 @@ using namespace std;
 //	}
 //}
 
-int main(int argc, const char** argv) {
+int main(int argc, const char **argv) {
     int n_cameras;
     char names_buffer[1024][256];
-    escapi_list_cameras(&n_cameras, (char*) names_buffer);
+    escapi_list_cameras(&n_cameras, (char *) names_buffer);
     cout << n_cameras << endl;
-    for(int i=0; i<n_cameras; i++) {
-        cout << (((char*)names_buffer) + 256*i) << endl;
+    for (int i = 0; i < n_cameras; i++) {
+        cout << (((char *) names_buffer) + 256 * i) << endl;
     }
 
     float props[17];
     int prop_autos[17];
-    for(int i=0; i<17; i++){
+    for (int i = 0; i < 17; i++) {
         props[i] = 0.5;
         prop_autos[i] = 0;
     }
 
-    escapi_open_camera((char*) names_buffer[1], 1920, 1080, props, prop_autos);
-    escapi_close_camera((char*) names_buffer[1]);
+    escapi_open_camera((char *) names_buffer[1], 1920, 1080, props, prop_autos);
+    escapi_close_camera((char *) names_buffer[1]);
     return 0;
 }

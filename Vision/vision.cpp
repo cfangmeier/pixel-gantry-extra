@@ -22,18 +22,18 @@ using namespace std;
 #define MAX_OBJECTS 20
 
 __declspec(dllexport) int __cdecl calc_focus(
-        char* imgPtr,
+        char *imgPtr,
         int imgLineWidth,
         int imgWidth, int imgHeight,
-        float* focus){
-    cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+        float *focus) {
+    cv::Mat img(imgHeight, imgWidth, CV_8U, (void *) imgPtr, imgLineWidth);
 
     cv::Mat lap;
     cv::Laplacian(img, lap, CV_32F, 5, .01);
 
     cv::Scalar mu, sigma;
     cv::meanStdDev(lap, mu, sigma);
-    *focus = (float)(sigma.val[0] * sigma.val[0]);
+    *focus = (float) (sigma.val[0] * sigma.val[0]);
     return 0;
 }
 
@@ -42,62 +42,62 @@ __declspec(dllexport) int __cdecl convert_to_grayscale(
         int src_imgLineWidth,
         int src_imgWidth,
         int src_imgHeight,
-        const char* src_type,
+        const char *src_type,
         char *dst_imgPtr,
         int dst_imgLineWidth,
         int dst_imgWidth,
-        int dst_imgHeight){
+        int dst_imgHeight) {
     int src_color_code = color_code(src_type);
     if (src_color_code < 0) return -1;
 
-    cv::Mat dst_img(dst_imgHeight, dst_imgWidth, CV_8UC1, (void*)dst_imgPtr, dst_imgLineWidth);
-    cv::Mat src_img(src_imgHeight, src_imgWidth, src_color_code, (void*)src_imgPtr, src_imgLineWidth);
+    cv::Mat dst_img(dst_imgHeight, dst_imgWidth, CV_8UC1, (void *) dst_imgPtr, dst_imgLineWidth);
+    cv::Mat src_img(src_imgHeight, src_imgWidth, src_color_code, (void *) src_imgPtr, src_imgLineWidth);
 
     if (strcmp(src_type, "Grayscale (U8)") == 0) {
         src_img.copyTo(dst_img);
-    } else if(strcmp(src_type, "Grayscale (I16)") == 0) {
-        cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 128);
-    } else if(strcmp(src_type, "Grayscale (U16)") == 0) {
-        cv::convertScaleAbs(src_img, dst_img, 1.0f/256, 0);
-    } else if(strcmp(src_type, "Grayscale (SGL)") == 0) {
+    } else if (strcmp(src_type, "Grayscale (I16)") == 0) {
+        cv::convertScaleAbs(src_img, dst_img, 1.0f / 256, 128);
+    } else if (strcmp(src_type, "Grayscale (U16)") == 0) {
+        cv::convertScaleAbs(src_img, dst_img, 1.0f / 256, 0);
+    } else if (strcmp(src_type, "Grayscale (SGL)") == 0) {
         cv::convertScaleAbs(src_img, dst_img, 256);
-    } else if(strcmp(src_type, "Complex (CSG)") == 0) {
+    } else if (strcmp(src_type, "Complex (CSG)") == 0) {
         return -1;
-    } else if(strcmp(src_type, "RGB (U32)") == 0) {
+    } else if (strcmp(src_type, "RGB (U32)") == 0) {
         cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
-    } else if(strcmp(src_type, "RGB (U64)") == 0) {
+    } else if (strcmp(src_type, "RGB (U64)") == 0) {
         cv::cvtColor(src_img, dst_img, cv::COLOR_RGB2GRAY);
-    } else if(strcmp(src_type, "HSL (U32)") == 0) {
+    } else if (strcmp(src_type, "HSL (U32)") == 0) {
         return -1;
     }
     return 0;
 }
 
-void set_to(cv::Mat &img, char from, char to){
+void set_to(cv::Mat &img, char from, char to) {
     int n = img.rows * img.cols;
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++) {
         char &curr = img.at<char>(i);
         if (curr == from) curr = to;
     }
 }
 
-void set_foreground(cv::Mat &img, char fgId, char fgVal, char bgVal){
+void set_foreground(cv::Mat &img, char fgId, char fgVal, char bgVal) {
     int n = img.rows * img.cols;
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++) {
         char &curr = img.at<char>(i);
         curr = (curr == fgId) ? fgVal : bgVal;
     }
 }
 
-void do_blur(cv::Mat &img, int blurSize){
+void do_blur(cv::Mat &img, int blurSize) {
     if (blurSize % 2 == 0) blurSize++;
     cv::blur(img, img, cv::Size(blurSize, blurSize));
 }
 
-void do_kmeans(cv::Mat &img, int k){
+void do_kmeans(cv::Mat &img, int k) {
     cv::TermCriteria tc(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 10, 1.0);
     int flags = cv::KMEANS_PP_CENTERS;
-    cv::Mat kmeansIn = img.reshape(1, img.rows*img.cols);
+    cv::Mat kmeansIn = img.reshape(1, img.rows * img.cols);
     cv::Mat colVecD, bestLabels, centers, clustered;
     kmeansIn.convertTo(colVecD, CV_32FC3, 1.0 / 255.0);
 
@@ -111,53 +111,55 @@ void do_kmeans(cv::Mat &img, int k){
     // TODO: Allow for selecting *which* label to use, ie brightest, 2nd brightest, etc
     float maxVal = -1;
     int foreground = -1;
-    for (int i = 0; i < centers.rows; i++){
+    for (int i = 0; i < centers.rows; i++) {
         float center = centers.at<float>(i);
-        if (center > maxVal){
+        if (center > maxVal) {
             maxVal = center;
             foreground = i;
         }
     }
-    set_foreground(img, (char)foreground, (char)255, (char)0);
+    set_foreground(img, (char) foreground, (char) 255, (char) 0);
 }
 
-void do_dilate(cv::Mat &img, int size){
+void do_dilate(cv::Mat &img, int size) {
     size = size > 0 ? size : 1;
     cv::Size s(size, size);
     cv::Mat element = getStructuringElement(cv::MORPH_ELLIPSE, s);
     dilate(img, img, element);
 }
 
-struct ContourData{
-    ContourData(){
+struct ContourData {
+    ContourData() {
         area = 0;
         ar = 0;
     }
-    ContourData(float area, float ar){
+
+    ContourData(float area, float ar) {
         this->area = area;
         this->ar = ar;
     }
+
     float area;
     float ar;
 };
 
-typedef pair<vector<cv::Point>,ContourData> contour_t;
+typedef pair<vector<cv::Point>, ContourData> contour_t;
 
-vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float arMin, float arMax){
+vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float arMin, float arMax) {
     vector<vector<cv::Point>> contours;
     vector<cv::Vec4i> hierarchy;
     findContours(img.clone(), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     vector<contour_t> passContours;
-    for (auto & contour : contours){
-        float area = (float)contourArea(contour);
+    for (auto &contour: contours) {
+        float area = (float) contourArea(contour);
         cv::RotatedRect rr = minAreaRect(contour);
         float ar = float(rr.size.width) / rr.size.height;
-        if(ar<1) ar = 1.0f/ar;
-        if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
+        if (ar < 1) ar = 1.0f / ar;
+        if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)) {
             contour_t c;
             c.first = contour;
-            c.second = ContourData(area,ar);
+            c.second = ContourData(area, ar);
             passContours.push_back(c);
         }
     }
@@ -166,7 +168,7 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
 
 __declspec(dllexport)
 int __cdecl find_patches(
-        char* imgPtr,
+        char *imgPtr,
         int imgLineWidth,
         int imgWidth,
         int imgHeight,
@@ -179,18 +181,17 @@ int __cdecl find_patches(
         float aspectRatioMin,
         float aspectRatioMax,
         int colorGroups,
-        int* numPatches,
-        float* patchXCoordinates,
-        float* patchYCoordinates,
-        float* patchAspectRatios,
-        float* patchSizes)
-{
+        int *numPatches,
+        float *patchXCoordinates,
+        float *patchYCoordinates,
+        float *patchAspectRatios,
+        float *patchSizes) {
     log("Running find_patches");
 
-    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void *) imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
-    int rows = (int)(img.rows / shrinkFactor);
-    int cols = (int)(img.cols / shrinkFactor);
+    int rows = (int) (img.rows / shrinkFactor);
+    int cols = (int) (img.cols / shrinkFactor);
     cv::Size s(cols, rows);
     resize(img, img, s);
 
@@ -200,13 +201,13 @@ int __cdecl find_patches(
     do_dilate(img, dilateSize);
     show(img);
 
-    float pixelSize = (fieldOfViewX * fieldOfViewY) / (float)(cols * rows);
+    float pixelSize = (fieldOfViewX * fieldOfViewY) / (float) (cols * rows);
     float sizeMinPx = sizeMin / pixelSize;
     float sizeMaxPx = sizeMax / pixelSize;
     // Note that Aspect Ratio is not corrected to physical size because this code assumes square pixels
 
     vector<contour_t> contours = get_contours(img, sizeMinPx, sizeMaxPx, aspectRatioMin, aspectRatioMax);
-    if (contours.size() > MAX_OBJECTS){
+    if (contours.size() > MAX_OBJECTS) {
         contours.resize(MAX_OBJECTS);
     }
     *numPatches = contours.size();
@@ -214,13 +215,13 @@ int __cdecl find_patches(
     std::stringstream ss;
     ss << "Fiducials Found: " << contours.size() << endl;
 
-    for (unsigned int i = 0; i < contours.size(); i++){
+    for (unsigned int i = 0; i < contours.size(); i++) {
         vector<cv::Point> fidContour = contours[i].first;
         ContourData c = contours[i].second;
 
         cv::Moments mu = moments(fidContour, false);
-        float x = (mu.m10 / mu.m00) * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
-        float y = (mu.m01 / mu.m00) * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
+        float x = (mu.m10 / mu.m00) * (fieldOfViewX / cols) - 0.5 * fieldOfViewX;
+        float y = (mu.m01 / mu.m00) * (fieldOfViewY / rows) - 0.5 * fieldOfViewY;
         *(patchXCoordinates + i) = x;
         *(patchYCoordinates + i) = y;
         *(patchAspectRatios + i) = c.ar;
@@ -228,7 +229,7 @@ int __cdecl find_patches(
 
         ss << i << ":" << endl;
         ss << "  x:" << x << ", y:" << y << endl;
-        ss << "  area: " << pixelSize*c.area << ", ar: " << c.ar << endl << endl;
+        ss << "  area: " << pixelSize * c.area << ", ar: " << c.ar << endl << endl;
     }
     log(ss);
     log("Done");
@@ -237,7 +238,7 @@ int __cdecl find_patches(
 
 
 __declspec(dllexport) int __cdecl find_circles(
-        char* imgPtr,
+        char *imgPtr,
         int imgLineWidth,
         int imgWidth,
         int imgHeight,
@@ -248,18 +249,17 @@ __declspec(dllexport) int __cdecl find_circles(
         float maxRadius,  // mm
         int houghGradientParam1,
         int houghGradientParam2,
-        int* numCircles,
-        float* circleXCenters,
-        float* circleYCenters,
-        float* circleRadii)
-{
+        int *numCircles,
+        float *circleXCenters,
+        float *circleYCenters,
+        float *circleRadii) {
     log("Running find_circles");
 
-    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void *) imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     shrinkFactor = shrinkFactor > 1 ? shrinkFactor : 1;
-    int rows = (int)(img.rows / shrinkFactor);
-    int cols = (int)(img.cols / shrinkFactor);
+    int rows = (int) (img.rows / shrinkFactor);
+    int cols = (int) (img.cols / shrinkFactor);
     cv::Size s(cols, rows);
     resize(img, img, s);
 
@@ -273,13 +273,12 @@ __declspec(dllexport) int __cdecl find_circles(
     cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, rows / 16, houghGradientParam1, houghGradientParam2,
                      minRadiusPx, maxRadiusPx);
 
-    if (circles.size() > MAX_OBJECTS){
+    if (circles.size() > MAX_OBJECTS) {
         circles.resize(MAX_OBJECTS);
     }
     *numCircles = circles.size();
 
-    for (size_t i = 0; i < circles.size(); i++)
-    {
+    for (size_t i = 0; i < circles.size(); i++) {
         cv::Vec3i c = circles[i];
 
         cv::Point center = cv::Point(c[0], c[1]);
@@ -291,8 +290,8 @@ __declspec(dllexport) int __cdecl find_circles(
     show(img);
 
     for (int i = 0; i < circles.size(); i++) {
-        *(circleXCenters + i) = circles[i][0] * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
-        *(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
+        *(circleXCenters + i) = circles[i][0] * (fieldOfViewX / cols) - 0.5 * fieldOfViewX;
+        *(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5 * fieldOfViewY;
         *(circleRadii + i) = circles[i][2] * pixelWidth;
     }
     log("Done");
@@ -301,7 +300,7 @@ __declspec(dllexport) int __cdecl find_circles(
 
 
 __declspec(dllexport) int __cdecl find_rects(
-        char* imgPtr,
+        char *imgPtr,
         int imgLineWidth,
         int imgWidth,
         int imgHeight,
@@ -312,25 +311,24 @@ __declspec(dllexport) int __cdecl find_rects(
         float nominalHeight,
         float tolerance,
         bool allowRotation,
-        int* Nrects,
-        float* rectXCenters,
-        float* rectYCenters,
-        float* rectXBLCorners,
-        float* rectYBLCorners,
-        float* rectXTLCorners,
-        float* rectYTLCorners,
-        float* rectXTRCorners,
-        float* rectYTRCorners,
-        float* rectXBRCorners,
-        float* rectYBRCorners,
-        float* rectWidths,
-        float* rectHeights,
-        float* rectAngles)
-{
+        int *Nrects,
+        float *rectXCenters,
+        float *rectYCenters,
+        float *rectXBLCorners,
+        float *rectYBLCorners,
+        float *rectXTLCorners,
+        float *rectYTLCorners,
+        float *rectXTRCorners,
+        float *rectYTRCorners,
+        float *rectXBRCorners,
+        float *rectYBRCorners,
+        float *rectWidths,
+        float *rectHeights,
+        float *rectAngles) {
     log("Running find_rects");
     std::stringstream ss;
 
-    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void *) imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
 
     cv::resize(img, img, cv::Size(img.cols / shrinkFactor, img.rows / shrinkFactor), 0, 0);
@@ -351,16 +349,18 @@ __declspec(dllexport) int __cdecl find_rects(
     log(ss);
 
     //APPROXIMATE CONTOURS TO POLYGONS AND MAKE BOUNDING RECTANGLE
-    vector<vector<cv::Point> > contoursPoly( contours.size() );
-    vector<cv::RotatedRect> boundRects( contours.size() ); //Rect is a class for rectangles, described by the coordinates of the top-left, bottom-right, width and height
+    vector<vector<cv::Point> > contoursPoly(contours.size());
+    vector<cv::RotatedRect> boundRects(
+            contours.size()); //Rect is a class for rectangles, described by the coordinates of the top-left, bottom-right, width and height
 
-    for( int i = 0; i < contours.size(); i++ ) {
-        approxPolyDP( cv::Mat(contours[i]), contoursPoly[i], 3, true ); //simplifies contours by decreasing the number of vertices, douglas-peucker algorithim
+    for (int i = 0; i < contours.size(); i++) {
+        approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3,
+                     true); //simplifies contours by decreasing the number of vertices, douglas-peucker algorithim
         if (allowRotation) {
             boundRects[i] = cv::minAreaRect(cv::Mat(contoursPoly[i]));
         } else {
             cv::Rect r = cv::boundingRect(cv::Mat(contoursPoly[i]));
-            cv::Point2f rectCenter = cv::Point2f(r.tl().x+r.width*.5, r.tl().y+r.height*.5);
+            cv::Point2f rectCenter = cv::Point2f(r.tl().x + r.width * .5, r.tl().y + r.height * .5);
             cv::Size2f rectSize = cv::Size2f(r.width, r.height);
             boundRects[i] = cv::RotatedRect(rectCenter, rectSize, 0.0f);
         }
@@ -370,43 +370,43 @@ __declspec(dllexport) int __cdecl find_rects(
     vector<cv::Point2f> rectSizes;
     vector<vector<cv::Point2f> > rectPoints; // center, bl, tl, tr, br
     vector<float> rectAngles_;
-    for (auto& bRect: boundRects) {
+    for (auto &bRect: boundRects) {
         float x, y;
         vector<cv::Point2f> pts;
         cv::Point2f recPoints[4];
         bRect.points(recPoints);
 
         pts.emplace_back( // Center
-                              (bRect.center.x - img.cols / 2) * pixelSize,
-                              (bRect.center.y - img.rows / 2) * pixelSize
-                      );
+                (bRect.center.x - img.cols / 2) * pixelSize,
+                (bRect.center.y - img.rows / 2) * pixelSize
+        );
 
         pts.emplace_back( // Bottom-Left Corner
-                              (recPoints[0].x - img.cols / 2) * pixelSize,
-                              (recPoints[0].y - img.rows / 2) * pixelSize
-                      );
+                (recPoints[0].x - img.cols / 2) * pixelSize,
+                (recPoints[0].y - img.rows / 2) * pixelSize
+        );
 
         pts.emplace_back( // Top-Left Corner
-                              (recPoints[1].x - img.cols / 2) * pixelSize,
-                              (recPoints[1].y - img.rows / 2) * pixelSize
-                      );
+                (recPoints[1].x - img.cols / 2) * pixelSize,
+                (recPoints[1].y - img.rows / 2) * pixelSize
+        );
 
         pts.emplace_back( // Top-Right Corner
-                              (recPoints[2].x - img.cols / 2) * pixelSize,
-                              (recPoints[2].y - img.rows / 2) * pixelSize
-                      );
+                (recPoints[2].x - img.cols / 2) * pixelSize,
+                (recPoints[2].y - img.rows / 2) * pixelSize
+        );
 
         pts.emplace_back( // Bottom-Right Corner
-                              (recPoints[3].x - img.cols / 2) * pixelSize,
-                              (recPoints[3].y - img.rows / 2) * pixelSize
-                      );
+                (recPoints[3].x - img.cols / 2) * pixelSize,
+                (recPoints[3].y - img.rows / 2) * pixelSize
+        );
         rectPoints.push_back(pts);
 
         rectAngles_.push_back(bRect.angle);
         rectSizes.emplace_back(
-                                    bRect.size.width * pixelSize,
-                                    bRect.size.height * pixelSize
-                            );
+                bRect.size.width * pixelSize,
+                bRect.size.height * pixelSize
+        );
     }
 
 
@@ -419,17 +419,19 @@ __declspec(dllexport) int __cdecl find_rects(
     // DRAWING CONTOURS AND BOUNDING RECTANGLE + CENTER
     int counter = 0; //counts number of rectangles passing shape requirements
     log("Contours passing selection:");
-    for( int i = 0; i<contours.size() && counter < MAX_OBJECTS; i++ ) {
-        cv::Scalar color = cv::Scalar(255,255,255); //creates color
+    for (int i = 0; i < contours.size() && counter < MAX_OBJECTS; i++) {
+        cv::Scalar color = cv::Scalar(255, 255, 255); //creates color
 
         bool passes = false;
         bool rotated = false; // Accounts for rectangle on it's side, in which case height&width are interchanged
 
-        if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) && (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) {
+        if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) &&
+            (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) {
             cout << "not rotated" << endl;
             cout << "angle: " << rectAngles_[i] << endl;
             passes = true;
-        } else if ((rectSizes[i].x > minHeight && rectSizes[i].x < maxHeight) && (rectSizes[i].y > minWidth && rectSizes[i].y < maxWidth)) {
+        } else if ((rectSizes[i].x > minHeight && rectSizes[i].x < maxHeight) &&
+                   (rectSizes[i].y > minWidth && rectSizes[i].y < maxWidth)) {
             cout << "rotated" << endl;
             cout << "angle: " << rectAngles_[i] << endl;
             passes = true;
@@ -437,7 +439,8 @@ __declspec(dllexport) int __cdecl find_rects(
         }
 
         if (passes) {
-            drawContours(img, contoursPoly, i, color, 1, 8, vector<cv::Vec4i>(), 0, cv::Point()); //takes the approximated contours as polynomails
+            drawContours(img, contoursPoly, i, color, 1, 8, vector<cv::Vec4i>(), 0,
+                         cv::Point()); //takes the approximated contours as polynomails
 
             cv::Point2f vertices[4];
             boundRects[i].points(vertices);
@@ -451,8 +454,8 @@ __declspec(dllexport) int __cdecl find_rects(
             ss << "  x=" << rectPoints[i][0].x << ", y=" << rectPoints[i][0].y;
 
 
-            auto label_corner = [img](cv::Point2f& pt, int col, const char* label) {
-                cv::Scalar color(col*60, col*60, col*60);
+            auto label_corner = [img](cv::Point2f &pt, int col, const char *label) {
+                cv::Scalar color(col * 60, col * 60, col * 60);
                 cv::circle(img, pt, 15, color, -1);
                 cv::putText(img, label, pt, cv::FONT_HERSHEY_SIMPLEX, 2.0, color, 3);
             };
@@ -480,8 +483,7 @@ __declspec(dllexport) int __cdecl find_rects(
                 label_corner(vertices[0], 4, "BR");
 
                 ss << ", width=" << rectSizes[i].y << ", height=" << rectSizes[i].x;
-            }
-            else {
+            } else {
                 *(rectWidths + counter) = rectSizes[i].x;
                 *(rectHeights + counter) = rectSizes[i].y;
                 *(rectAngles + counter) = fmodf(rectAngles_[i], 180.0);
@@ -521,7 +523,7 @@ DLLExport int __cdecl flip(
         int imgWidth,
         int imgHeight,
         int mirrorType) {
-    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void *) imgPtr, imgLineWidth);
     cv::flip(imgIn, imgIn, mirrorType);
     return 0;
 }
@@ -539,18 +541,19 @@ DLLExport int __cdecl crop(
         int right,
         int top,
         int bottom) {
-    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
-    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void *) srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void *) dstPtr, dstLineWidth);
     imgIn(cv::Range(top, bottom), cv::Range(left, right)).copyTo(imgOut);
     return 0;
 }
+
 DLLExport int __cdecl fill(
         char *srcPtr,
         int srcLineWidth,
         int srcWidth,
         int srcHeight,
         unsigned char value) {
-    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void *) srcPtr, srcLineWidth);
     imgIn.setTo(value);
     return 0;
 }
@@ -566,8 +569,8 @@ DLLExport int __cdecl resample(
         int dstHeight,
         int new_width,
         int new_height) {
-    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
-    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void *) srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void *) dstPtr, dstLineWidth);
 
     cv::resize(imgIn, imgOut, cv::Size(new_width, new_height), cv::INTER_LINEAR);
     return 0;
@@ -584,16 +587,16 @@ DLLExport int __cdecl superimpose(
         int dstHeight,
         int dstTop,
         int dstLeft) {
-    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void*)srcPtr, srcLineWidth);
-    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void*)dstPtr, dstLineWidth);
+    cv::Mat imgIn(srcHeight, srcWidth, CV_8U, (void *) srcPtr, srcLineWidth);
+    cv::Mat imgOut(dstHeight, dstWidth, CV_8U, (void *) dstPtr, dstLineWidth);
 
-    dstTop = clamp(dstTop, 0, dstHeight-1);
-    dstLeft = clamp(dstLeft, 0, dstWidth-1);
-    int dstRight = clamp(dstLeft+srcWidth, 0, dstWidth-1);
-    int dstBottom = clamp(dstTop+srcHeight, 0, dstHeight-1);
-    for (int i=dstTop; i<dstBottom; i++) {
+    dstTop = clamp(dstTop, 0, dstHeight - 1);
+    dstLeft = clamp(dstLeft, 0, dstWidth - 1);
+    int dstRight = clamp(dstLeft + srcWidth, 0, dstWidth - 1);
+    int dstBottom = clamp(dstTop + srcHeight, 0, dstHeight - 1);
+    for (int i = dstTop; i < dstBottom; i++) {
         int src_row = i - dstTop;
-        for (int j=dstLeft; j<dstRight; j++) {
+        for (int j = dstLeft; j < dstRight; j++) {
             int src_col = j - dstLeft;
             imgOut.at<char>(i, j) = imgIn.at<char>(src_row, src_col);
         }

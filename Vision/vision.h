@@ -17,11 +17,12 @@ DLLExport int __cdecl convert_to_grayscale(
         int src_imgLineWidth,
         int src_imgWidth,
         int src_imgHeight,
-        const char* src_type,
+        const char *src_type,
         char *dst_imgPtr,
         int dst_imgLineWidth,
         int dst_imgWidth,
-        int dst_imgHeight);
+        int dst_imgHeight
+        );
 
 
 DLLExport int __cdecl find_patches(

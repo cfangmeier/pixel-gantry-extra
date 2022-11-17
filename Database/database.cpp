@@ -14,29 +14,29 @@ using namespace sql;
 
 #define cp_to_buffer(buf, str) memcpy((buf) + (idx)*DB_STR_LEN, (str).c_str(), (str).size()+1 > DB_STR_LEN ? DB_STR_LEN : (str).size()+1)
 
-int with_default(ResultSet* rs, unsigned int col_idx, int default_) {
+int with_default(ResultSet *rs, unsigned int col_idx, int default_) {
     if (rs->isNull(col_idx)) return default_;
     else return rs->getInt(col_idx);
 }
 
-float with_default(ResultSet* rs, unsigned int col_idx, float default_) {
+float with_default(ResultSet *rs, unsigned int col_idx, float default_) {
     if (rs->isNull(col_idx)) return default_;
     else return (float) rs->getDouble(col_idx);
 }
 
-string with_default(ResultSet* rs, unsigned int col_idx, string default_) {
+string with_default(ResultSet *rs, unsigned int col_idx, string default_) {
     if (rs->isNull(col_idx)) return default_;
     else return rs->getString(col_idx);
 }
 
 
-int get_last_insert_id(sql::Connection* conn) {
+int get_last_insert_id(sql::Connection *conn) {
     unique_ptr<sql::ResultSet> result(conn->createStatement()->executeQuery("SELECT last_insert_id()"));
     result->next();
     return result->getInt(1);
 }
 
-map<int, sql::Connection*> connections;
+map<int, sql::Connection *> connections;
 int conn_cntr = 0;
 
 std::string get_current_utc_timestamp() {
@@ -49,17 +49,17 @@ std::string get_current_utc_timestamp() {
 }
 
 
-int connect(const char* username, const char* password, const char* host, const char* schema, int port) {
+int connect(const char *username, const char *password, const char *host, const char *schema, int port) {
 
     cout << "Connecting to host " << host << ":" << port << endl;
     try {
-        sql::Driver * driver = sql::mysql::get_driver_instance();
+        sql::Driver *driver = sql::mysql::get_driver_instance();
         sql::Connection *conn = driver->connect(host, username, password);
         conn->setSchema(schema);
         connections[conn_cntr] = conn;
         conn_cntr++;
         return conn_cntr - 1;
-    } catch(std::exception &e){
+    } catch (std::exception &e) {
         std::cout << e.what() << std::endl;
         std::cout << "Failed to connect" << std::endl;
         return -1;
@@ -67,7 +67,7 @@ int connect(const char* username, const char* password, const char* host, const 
 }
 
 int disconnect(int conn_id) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.extract(conn_id).mapped(); } catch (out_of_range &e) { return -1; }
     conn->close();
     delete conn;
@@ -75,14 +75,14 @@ int disconnect(int conn_id) {
 }
 
 int start_transaction(int conn_id) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
     conn->setAutoCommit(false);
     return 0;
 }
 
 int rollback_transaction(int conn_id) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
     conn->rollback();
     conn->setAutoCommit(true);
@@ -90,16 +90,16 @@ int rollback_transaction(int conn_id) {
 }
 
 int finish_transaction(int conn_id) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
     conn->commit();
     conn->setAutoCommit(true);
     return 0;
 }
 
-int query_parts(int conn_id, int* n_parts, char* part, int* version, char* description, char* prefix,
-                float* dim_x, float* dim_y, float* dim_z, char* type) {
-    sql::Connection* conn;
+int query_parts(int conn_id, int *n_parts, char *part, int *version, char *description, char *prefix,
+                float *dim_x, float *dim_y, float *dim_z, char *type) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
@@ -134,8 +134,9 @@ int query_parts(int conn_id, int* n_parts, char* part, int* version, char* descr
     return 0;
 }
 
-int query_people(int conn_id, int* n_people, char* username , char* name, char* full_name, char* email, char* institute, char* timezone) {
-    sql::Connection* conn;
+int query_people(int conn_id, int *n_people, char *username, char *name, char *full_name, char *email, char *institute,
+                 char *timezone) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
@@ -167,14 +168,14 @@ int query_people(int conn_id, int* n_people, char* username , char* name, char* 
     return 0;
 }
 
-int check_login(int conn_id, const char* username, const char* password) {
+int check_login(int conn_id, const char *username, const char *password) {
     /*
      * Return
      *   0: Password check passed
      *   1: User exists & password failed
      *   2: User does not exist
      */
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement("SELECT password FROM people WHERE username = ?"));
@@ -190,16 +191,16 @@ int check_login(int conn_id, const char* username, const char* password) {
     return db_hashed == input_hashed ? 0 : 1;
 }
 
-int query_components(int conn_id, const char* part, int version, int* n_component, int* id, char* status,
-                     char* description, char* serial_number,  char* location, int* parent) {
-    sql::Connection* conn;
+int query_components(int conn_id, const char *part, int version, int *n_component, int *id, char *status,
+                     char *description, char *serial_number, char *location, int *parent) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
             "SELECT id, status, description, serial_number, location, parent FROM component "
             "WHERE part = ? AND version = ? "
             "ORDER BY serial_number"
-            ));
+    ));
     stmt->setString(1, part);
     stmt->setInt(2, version);
     unique_ptr<sql::ResultSet> components(stmt->executeQuery());
@@ -228,9 +229,9 @@ int query_components(int conn_id, const char* part, int version, int* n_componen
     return 0;
 }
 
-int insert_component(int conn_id, const char* part, int version, const char* status, const char* description,
-                     const char* who, const char* serial_number, const char* location) {
-    sql::Connection* conn;
+int insert_component(int conn_id, const char *part, int version, const char *status, const char *description,
+                     const char *who, const char *serial_number, const char *location) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     string creation_time = get_current_utc_timestamp();
@@ -253,19 +254,19 @@ int insert_component(int conn_id, const char* part, int version, const char* sta
 }
 
 int remove_component(int conn_id, int component_id) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
             "DELETE FROM component WHERE id = ?"
-            ));
+    ));
     stmt->setInt(1, component_id);
     stmt->execute();
     return 0;
 }
 
-int update_component(int conn_id, int id, const char* status, int parent) {
-    sql::Connection* conn;
+int update_component(int conn_id, int id, const char *status, int parent) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(
@@ -280,8 +281,8 @@ int update_component(int conn_id, int id, const char* status, int parent) {
     return 0;
 }
 
-int insert_log(int conn_id, const char* userid, const char* remote_ip, const char* type) {
-    sql::Connection* conn;
+int insert_log(int conn_id, const char *userid, const char *remote_ip, const char *type) {
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     string now = get_current_utc_timestamp();
@@ -299,7 +300,7 @@ int insert_log(int conn_id, const char* userid, const char* remote_ip, const cha
 }
 
 int insert_test(int conn_id, const char *description, const char *data, int component_id, const char *type) {
-    sql::Connection* conn;
+    sql::Connection *conn;
     try { conn = connections.at(conn_id); } catch (out_of_range &e) { return -1; }
 
     string now = get_current_utc_timestamp();
