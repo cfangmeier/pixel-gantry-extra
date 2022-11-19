@@ -20,7 +20,7 @@ extern "C" {
     __declspec(dllexport) int __cdecl GetErrorCode(const char* cam_name);
     __declspec(dllexport) int __cdecl GetErrorLine(const char* cam_name);
     __declspec(dllexport) int __cdecl GetProperty(const char* cam_name, const char* prop_name, float* val, int* autoval);
-    __declspec(dllexport) int __cdecl SetProperty(const char* cam_name, const char* prop_name, float aValue, int aAutoval);
+    __declspec(dllexport) int __cdecl SetProperty(const char* cam_name, const char* prop_name, float val, int autoval);
     __declspec(dllexport) int __cdecl GetAvailableModes(const char* cam_name, UHandle* ids, UHandle* widths,
                                                         UHandle* heights, UHandle* framerates);
     __declspec(dllexport) int __cdecl DoCapture(const char* cam_name);

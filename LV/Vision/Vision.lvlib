@@ -47,6 +47,8 @@
 			<Item Name="wmf_open_camera.vi" Type="VI" URL="../wmf_open_camera.vi"/>
 			<Item Name="wmf_list_modes.vi" Type="VI" URL="../wmf_list_modes.vi"/>
 			<Item Name="wmf_set_property.vi" Type="VI" URL="../wmf_set_property.vi"/>
+			<Item Name="wmf_get_property.vi" Type="VI" URL="../wmf_get_property.vi"/>
+			<Item Name="wmf_properties.vi" Type="VI" URL="../wmf_properties.vi"/>
 		</Item>
 		<Item Name="open camera.vi" Type="VI" URL="../open camera.vi"/>
 		<Item Name="grab image.vi" Type="VI" URL="../grab image.vi"/>
@@ -55,5 +57,7 @@
 		<Item Name="close camera.vi" Type="VI" URL="../close camera.vi"/>
 		<Item Name="list cameras.vi" Type="VI" URL="../list cameras.vi"/>
 		<Item Name="save configuration.vi" Type="VI" URL="../save configuration.vi"/>
+		<Item Name="get modes.vi" Type="VI" URL="../get modes.vi"/>
+		<Item Name="get properties.vi" Type="VI" URL="../get properties.vi"/>
 	</Item>
 </Library>

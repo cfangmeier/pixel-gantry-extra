@@ -265,38 +265,52 @@ int CaptureClass::getProperty(const char* prop_name, float &aValue, int &aAuto) 
 
     if (!is_cam_prop) {
         hr = mSource->QueryInterface(IID_PPV_ARGS(&procAmp));
-        if (SUCCEEDED(hr)) {
-            long min, max, step, def, caps;
-            hr = procAmp->GetRange(prop_id, &min, &max, &step, &def, &caps);
-
-            if (SUCCEEDED(hr)) {
-                long v = 0, f = 0;
-                hr = procAmp->Get(prop_id, &v, &f);
-                if (SUCCEEDED(hr)) {
-                    aValue = (v - min) / (float) (max - min);
-                    aAuto = !!(f & VideoProcAmp_Flags_Auto);
-                }
-            }
+        if (FAILED(hr)) {
             procAmp->Release();
-            return 0;
+            return hr;
         }
+
+        long min, max, step, def, caps;
+        hr = procAmp->GetRange(prop_id, &min, &max, &step, &def, &caps);
+        if (FAILED(hr)) {
+            procAmp->Release();
+            return hr;
+        }
+
+        long v = 0, f = 0;
+        hr = procAmp->Get(prop_id, &v, &f);
+        if (FAILED(hr)) {
+            procAmp->Release();
+            return hr;
+        }
+        aValue = (v - min) / (float) (max - min);
+        aAuto = !!(f & VideoProcAmp_Flags_Auto);
+        procAmp->Release();
+        return 0;
     } else {
         hr = mSource->QueryInterface(IID_PPV_ARGS(&control));
-        if (SUCCEEDED(hr)) {
-            long min, max, step, def, caps;
-            hr = control->GetRange(prop_id, &min, &max, &step, &def, &caps);
-
-            if (SUCCEEDED(hr)) {
-                long v = 0, f = 0;
-                hr = control->Get(prop_id, &v, &f);
-                if (SUCCEEDED(hr)) {
-                    aValue = (v - min) / (float) (max - min);
-                    aAuto = !!(f & VideoProcAmp_Flags_Auto);
-                }
-            }
+        if (FAILED(hr)) {
             control->Release();
-            return 0;
+            return hr;
         }
+
+        long min, max, step, def, caps;
+        hr = control->GetRange(prop_id, &min, &max, &step, &def, &caps);
+        if (FAILED(hr)) {
+            control->Release();
+            return hr;
+        }
+
+        long v = 0, f = 0;
+        hr = control->Get(prop_id, &v, &f);
+        if (FAILED(hr)) {
+            control->Release();
+            return hr;
+        }
+        aValue = (v - min) / (float) (max - min);
+        aAuto = !!(f & VideoProcAmp_Flags_Auto);
+        control->Release();
+        return 0;
     }
 
     return 1;
@@ -537,18 +551,6 @@ HRESULT CaptureClass::initCapture(int device_id_, int mode_id_, const char* cam_
     } else {
         return MF_E_INVALIDINDEX;
     }
-
-    /*
-    for (i = 0; i < 16; i++)
-    {
-    char temp[128];
-    float v;
-    int f;
-    int r = GetProperty(i, v, f);
-    sprintf(temp, "%d: %3.3f %d (%d)\n", i, v, f, r);
-    OutputDebugStringA(temp);
-    }
-    */
 
     return 0;
 }

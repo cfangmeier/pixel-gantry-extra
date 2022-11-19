@@ -48,20 +48,20 @@ public:
     void deinitCapture();
 
     long mRefCount;        // Reference count.
-    CRITICAL_SECTION mCritsec;
+    CRITICAL_SECTION mCritsec{};
 
     IMFSourceReader *mReader;
-    IMFMediaSource *mSource;
+    IMFMediaSource *mSource{};
 
-    LONG mDefaultStride;
-    IMAGE_TRANSFORM_FN mConvertFn;    // Function to convert the video to RGB32
+    LONG mDefaultStride{};
+    IMAGE_TRANSFORM_FN mConvertFn{};    // Function to convert the video to RGB32
 
     unsigned int *mCaptureBuffer;
     int mCaptureBufferWidth, mCaptureBufferHeight;
     int mErrorLine;
     int mErrorCode;
-    int device_id;
-    int mode_id;
+    int device_id{};
+    int mode_id{};
     std::string cam_name;
 
     int *mBadIndex;

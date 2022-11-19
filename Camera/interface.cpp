@@ -214,11 +214,14 @@ int GetAvailableModes(const char* cam_name, UHandle* ids, UHandle* widths, UHand
     auto widths_ptr = (int*) **widths;
     auto heights_ptr = (int*) **heights;
     auto framerates_ptr = (float*) **framerates;
-    for (int i=0; i<modes.size(); i++) {
-        *(ids_ptr + 1 + i) = (int) modes[i].id;
-        *(widths_ptr + 1 + i) = (int) modes[i].width;
-        *(heights_ptr + 1 + i) = (int) modes[i].height;
-        *(framerates_ptr + 1 + i) = modes[i].framerate;
+    int i = 0;
+    for (auto [_, mode] : modes) {
+        if (mode.id == 0 && i != 0) continue;
+        *(ids_ptr + 1 + i) = (int) mode.id;
+        *(widths_ptr + 1 + i) = (int) mode.width;
+        *(heights_ptr + 1 + i) = (int) mode.height;
+        *(framerates_ptr + 1 + i) = mode.framerate;
+        i++;
     }
     return 0;
 }
@@ -229,17 +232,16 @@ int GetProperty(const char* cam_name, const char* prop_name, float* val, int* au
     CheckForFail(cam_name);
     if (!gDevice[cam_name])
         return -1;
-    gDevice[cam_name]->getProperty(prop_name, *val, *autoval);
-    return 0;
+    return gDevice[cam_name]->getProperty(prop_name, *val, *autoval);
 }
 
 
-int SetProperty(const char* cam_name, const char* prop_name, float aValue, int aAutoval) {
+int SetProperty(const char* cam_name, const char* prop_name, float val, int autoval) {
     Init();
     CheckForFail(cam_name);
     if (!gDevice[cam_name])
         return 0;
-    return gDevice[cam_name]->setProperty(prop_name, aValue, aAutoval);
+    return gDevice[cam_name]->setProperty(prop_name, val, autoval);
 }
 
 int Init() {
